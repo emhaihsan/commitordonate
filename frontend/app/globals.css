@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --border: #e5e5e5;
+  --border-strong: #171717;
+  --muted: #737373;
+  --accent: #0a0a0a;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #ca8a04;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #fafafa;
+    --border: #262626;
+    --border-strong: #fafafa;
+    --muted: #a3a3a3;
+    --accent: #fafafa;
+  }
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  font-feature-settings: "ss01", "ss02", "cv01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.grid-pattern {
+  background-image: 
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Plus } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Plus, Flame, Trophy, Skull } from "lucide-react";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
 
@@ -65,31 +65,36 @@ const MOCK_COMMITMENTS: Commitment[] = [
   },
 ];
 
-const STATUS_CONFIG: Record<CommitmentStatus, { label: string; icon: React.ReactNode; color: string }> = {
+const STATUS_CONFIG: Record<CommitmentStatus, { label: string; icon: React.ReactNode; bgColor: string; textColor: string }> = {
   active: {
     label: "Active",
-    icon: <Clock className="w-4 h-4" />,
-    color: "text-foreground",
+    icon: <Flame className="w-4 h-4" />,
+    bgColor: "bg-[var(--cyan)]",
+    textColor: "text-black",
   },
   pending_confirmation: {
     label: "Confirm Required",
     icon: <AlertCircle className="w-4 h-4" />,
-    color: "text-warning",
+    bgColor: "bg-[var(--orange)]",
+    textColor: "text-black",
   },
   pending_validation: {
     label: "Awaiting Validator",
     icon: <Clock className="w-4 h-4" />,
-    color: "text-warning",
+    bgColor: "bg-[var(--yellow)]",
+    textColor: "text-black",
   },
   success: {
     label: "Success",
-    icon: <CheckCircle className="w-4 h-4" />,
-    color: "text-success",
+    icon: <Trophy className="w-4 h-4" />,
+    bgColor: "bg-[var(--mint)]",
+    textColor: "text-black",
   },
   failed: {
     label: "Failed",
-    icon: <XCircle className="w-4 h-4" />,
-    color: "text-danger",
+    icon: <Skull className="w-4 h-4" />,
+    bgColor: "bg-[var(--danger)]",
+    textColor: "text-black",
   },
 };
 
@@ -129,64 +134,65 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-6xl px-6 py-16">
+      <div className="mx-auto max-w-7xl px-6 py-12">
         {/* Header */}
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-muted mb-2">
-              Dashboard
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight">Your Commitments</h1>
+            <div className="brutal-btn inline-block bg-[var(--cyan)] px-4 py-2 text-sm font-bold mb-4">
+              📊 DASHBOARD
+            </div>
+            <h1 className="text-4xl font-black tracking-tight">Your Commitments</h1>
           </div>
           <Link
             href="/commit"
-            className="inline-flex items-center justify-center gap-2 bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground/90 transition-colors"
+            className="brutal-btn bg-[var(--pink)] px-6 py-3 text-sm font-bold inline-flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             New Commitment
           </Link>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-border mb-12">
-          <div className="bg-background p-6 border-r border-border">
-            <p className="font-mono text-xs uppercase tracking-widest text-muted mb-2">
-              Currently at Stake
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+          <div className="brutal-card p-6 bg-[var(--yellow)]">
+            <p className="font-mono text-xs uppercase tracking-widest mb-2 font-bold">
+              💰 At Stake
             </p>
-            <p className="text-3xl font-bold font-mono">${totalStaked}</p>
+            <p className="text-4xl font-black font-mono">${totalStaked}</p>
           </div>
-          <div className="bg-background p-6 border-r border-border">
-            <p className="font-mono text-xs uppercase tracking-widest text-muted mb-2">
-              Active
+          <div className="brutal-card p-6 bg-[var(--cyan)]">
+            <p className="font-mono text-xs uppercase tracking-widest mb-2 font-bold">
+              🔥 Active
             </p>
-            <p className="text-3xl font-bold font-mono">{activeCommitments.length}</p>
+            <p className="text-4xl font-black font-mono">{activeCommitments.length}</p>
           </div>
-          <div className="bg-background p-6 border-r border-border">
-            <p className="font-mono text-xs uppercase tracking-widest text-muted mb-2">
-              Succeeded
+          <div className="brutal-card p-6 bg-[var(--mint)]">
+            <p className="font-mono text-xs uppercase tracking-widest mb-2 font-bold">
+              🏆 Succeeded
             </p>
-            <p className="text-3xl font-bold font-mono text-success">{successCount}</p>
+            <p className="text-4xl font-black font-mono">{successCount}</p>
           </div>
-          <div className="bg-background p-6">
-            <p className="font-mono text-xs uppercase tracking-widest text-muted mb-2">
-              Failed
+          <div className="brutal-card p-6 bg-[var(--danger)] text-black">
+            <p className="font-mono text-xs uppercase tracking-widest mb-2 font-bold">
+              💀 Failed
             </p>
-            <p className="text-3xl font-bold font-mono text-danger">{failedCount}</p>
+            <p className="text-4xl font-black font-mono">{failedCount}</p>
           </div>
         </div>
 
         {/* Active Commitments */}
         <section className="mb-12">
-          <h2 className="text-xl font-semibold mb-6 pb-4 border-b border-border">
-            Active Commitments
+          <h2 className="text-2xl font-black mb-6 flex items-center gap-3">
+            <span className="bg-[var(--orange)] brutal-border px-3 py-1">Active</span>
+            Commitments
           </h2>
           
           {activeCommitments.length === 0 ? (
-            <div className="border border-border p-12 text-center">
-              <p className="text-muted mb-4">No active commitments</p>
+            <div className="brutal-card p-12 text-center bg-white">
+              <p className="text-[var(--muted)] mb-4 font-medium">No active commitments</p>
               <Link
                 href="/commit"
-                className="inline-flex items-center gap-2 text-sm font-medium hover:text-muted transition-colors"
+                className="brutal-btn bg-[var(--pink)] px-6 py-3 inline-flex items-center gap-2 font-bold"
               >
                 Create your first commitment
                 <ArrowRight className="w-4 h-4" />
@@ -200,38 +206,38 @@ export default function DashboardPage() {
                   <Link
                     key={commitment.id}
                     href={`/commitment/${commitment.id}`}
-                    className="block border border-border hover:border-border-strong transition-colors"
+                    className="block brutal-card bg-white hover:-translate-y-1 transition-transform"
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex-1">
-                          <p className="font-medium text-lg mb-1">{commitment.commitment}</p>
-                          <p className="text-sm text-muted">
+                          <p className="font-bold text-xl mb-1">{commitment.commitment}</p>
+                          <p className="text-sm text-[var(--muted)] font-medium">
                             Created {formatDate(commitment.createdAt)}
                           </p>
                         </div>
-                        <div className={`flex items-center gap-2 ${statusConfig.color}`}>
+                        <div className={`brutal-btn px-3 py-1 flex items-center gap-2 ${statusConfig.bgColor} ${statusConfig.textColor}`}>
                           {statusConfig.icon}
-                          <span className="text-sm font-medium">{statusConfig.label}</span>
+                          <span className="text-sm font-bold">{statusConfig.label}</span>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t-[3px] border-black">
                         <div>
-                          <p className="font-mono text-xs text-muted mb-1">STAKE</p>
-                          <p className="font-mono font-medium">${commitment.stakeAmount}</p>
+                          <p className="font-mono text-xs text-[var(--muted)] mb-1 font-bold">STAKE</p>
+                          <p className="font-mono font-black text-lg">${commitment.stakeAmount}</p>
                         </div>
                         <div>
-                          <p className="font-mono text-xs text-muted mb-1">DEADLINE</p>
-                          <p className="font-mono font-medium">{formatDate(commitment.deadline)}</p>
+                          <p className="font-mono text-xs text-[var(--muted)] mb-1 font-bold">DEADLINE</p>
+                          <p className="font-mono font-bold">{formatDate(commitment.deadline)}</p>
                         </div>
                         <div>
-                          <p className="font-mono text-xs text-muted mb-1">TIME LEFT</p>
-                          <p className="font-mono font-medium">{formatTimeRemaining(commitment.deadline)}</p>
+                          <p className="font-mono text-xs text-[var(--muted)] mb-1 font-bold">TIME LEFT</p>
+                          <p className="font-mono font-bold text-[var(--danger)]">{formatTimeRemaining(commitment.deadline)}</p>
                         </div>
                         <div>
-                          <p className="font-mono text-xs text-muted mb-1">VALIDATOR</p>
-                          <p className="font-mono font-medium">{commitment.validator}</p>
+                          <p className="font-mono text-xs text-[var(--muted)] mb-1 font-bold">VALIDATOR</p>
+                          <p className="font-mono font-medium text-sm">{commitment.validator}</p>
                         </div>
                       </div>
                     </div>
@@ -244,29 +250,30 @@ export default function DashboardPage() {
 
         {/* Past Commitments */}
         <section>
-          <h2 className="text-xl font-semibold mb-6 pb-4 border-b border-border">
-            Past Commitments
+          <h2 className="text-2xl font-black mb-6 flex items-center gap-3">
+            <span className="bg-[var(--lavender)] brutal-border px-3 py-1">Past</span>
+            Commitments
           </h2>
           
           {pastCommitments.length === 0 ? (
-            <div className="border border-border p-12 text-center">
-              <p className="text-muted">No past commitments yet</p>
+            <div className="brutal-card p-12 text-center bg-white">
+              <p className="text-[var(--muted)] font-medium">No past commitments yet</p>
             </div>
           ) : (
-            <div className="border border-border">
+            <div className="brutal-card bg-white overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                  <tr className="border-b-[3px] border-black bg-[var(--background)]">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Commitment
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Stake
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Outcome
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Resolved
                     </th>
                   </tr>
@@ -275,23 +282,23 @@ export default function DashboardPage() {
                   {pastCommitments.map((commitment) => {
                     const statusConfig = STATUS_CONFIG[commitment.status];
                     return (
-                      <tr key={commitment.id} className="border-b border-border last:border-b-0">
+                      <tr key={commitment.id} className="border-b-[2px] border-black last:border-b-0 hover:bg-[var(--background)]">
                         <td className="p-4">
                           <Link
                             href={`/commitment/${commitment.id}`}
-                            className="hover:text-muted transition-colors"
+                            className="font-bold hover:underline"
                           >
                             {commitment.commitment}
                           </Link>
                         </td>
-                        <td className="p-4 font-mono">${commitment.stakeAmount}</td>
+                        <td className="p-4 font-mono font-bold">${commitment.stakeAmount}</td>
                         <td className="p-4">
-                          <div className={`flex items-center gap-2 ${statusConfig.color}`}>
+                          <div className={`brutal-btn inline-flex px-3 py-1 items-center gap-2 ${statusConfig.bgColor} ${statusConfig.textColor}`}>
                             {statusConfig.icon}
-                            <span className="text-sm">{statusConfig.label}</span>
+                            <span className="text-sm font-bold">{statusConfig.label}</span>
                           </div>
                         </td>
-                        <td className="p-4 font-mono text-sm text-muted">
+                        <td className="p-4 font-mono text-sm font-medium">
                           {commitment.resolvedAt ? formatDate(commitment.resolvedAt) : "-"}
                         </td>
                       </tr>

@@ -53,30 +53,30 @@ export default function CommitPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-2xl px-6 py-16">
+      <div className="mx-auto max-w-2xl px-6 py-12">
         {/* Progress */}
-        <div className="mb-12">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-6">
             {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center gap-4">
+              <div key={s} className="flex items-center gap-3">
                 <div
-                  className={`w-8 h-8 border flex items-center justify-center font-mono text-sm ${
+                  className={`w-12 h-12 brutal-border flex items-center justify-center font-mono text-lg font-black ${
                     s === step
-                      ? "border-border-strong bg-foreground text-background"
+                      ? "bg-[var(--pink)]"
                       : s < step
-                      ? "border-border-strong bg-foreground text-background"
-                      : "border-border text-muted"
+                      ? "bg-[var(--mint)]"
+                      : "bg-white text-[var(--muted)]"
                   }`}
                 >
-                  {s}
+                  {s < step ? "✓" : s}
                 </div>
-                {s < 3 && <div className={`w-16 h-px ${s < step ? "bg-foreground" : "bg-border"}`} />}
+                {s < 3 && <div className={`w-12 h-1 ${s < step ? "bg-black" : "bg-gray-300"}`} />}
               </div>
             ))}
           </div>
-          <p className="font-mono text-xs uppercase tracking-widest text-muted">
-            Step {step} of 3
-          </p>
+          <div className="brutal-btn inline-block bg-[var(--yellow)] px-4 py-2 text-sm font-bold">
+            STEP {step} OF 3
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -84,39 +84,39 @@ export default function CommitPage() {
           {step === 1 && (
             <div className="space-y-8">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2">
-                  Define your commitment
+                <h1 className="text-4xl font-black tracking-tight mb-3">
+                  Define your <span className="bg-[var(--cyan)] brutal-border px-2">commitment</span>
                 </h1>
-                <p className="text-muted">
-                  Be specific. Vague commitments are easy to rationalize away.
+                <p className="text-lg font-medium">
+                  Be specific. <span className="text-[var(--muted)]">Vague commitments are easy to rationalize away.</span>
                 </p>
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="block font-mono text-xs uppercase tracking-widest text-muted mb-3">
-                    What are you committing to?
+                <div className="brutal-card p-6 bg-white">
+                  <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
+                    📝 What are you committing to?
                   </label>
                   <textarea
                     value={formData.commitment}
                     onChange={(e) => setFormData({ ...formData, commitment: e.target.value })}
                     placeholder="e.g., Exercise every day for 30 days"
-                    className="w-full h-32 px-4 py-3 border border-border bg-transparent text-foreground placeholder:text-muted/50 focus:outline-none focus:border-border-strong resize-none"
+                    className="brutal-input w-full h-32 resize-none"
                   />
                 </div>
 
-                <div>
-                  <label className="block font-mono text-xs uppercase tracking-widest text-muted mb-3">
-                    Deadline
+                <div className="brutal-card p-6 bg-white">
+                  <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
+                    ⏰ Deadline
                   </label>
                   <input
                     type="datetime-local"
                     value={formData.deadline}
                     onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                    className="w-full px-4 py-3 border border-border bg-transparent text-foreground focus:outline-none focus:border-border-strong"
+                    className="brutal-input w-full"
                   />
-                  <p className="text-xs text-muted mt-2">
-                    You must confirm completion before this time, or you automatically fail.
+                  <p className="text-sm text-[var(--muted)] mt-3 font-medium">
+                    ⚠️ You must confirm completion before this time, or you automatically fail.
                   </p>
                 </div>
               </div>
@@ -127,55 +127,55 @@ export default function CommitPage() {
           {step === 2 && (
             <div className="space-y-8">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2">
-                  Set the stakes
+                <h1 className="text-4xl font-black tracking-tight mb-3">
+                  Set the <span className="bg-[var(--orange)] brutal-border px-2">stakes</span>
                 </h1>
-                <p className="text-muted">
-                  This money will be locked. You cannot cancel once submitted.
+                <p className="text-lg font-medium">
+                  This money will be locked. <span className="text-[var(--danger)] font-bold">You cannot cancel once submitted.</span>
                 </p>
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="block font-mono text-xs uppercase tracking-widest text-muted mb-3">
-                    Stake Amount (USDC)
+                <div className="brutal-card p-6 bg-[var(--yellow)]">
+                  <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
+                    💰 Stake Amount (USDC)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-lg">$</span>
                     <input
                       type="number"
                       value={formData.stakeAmount}
                       onChange={(e) => setFormData({ ...formData, stakeAmount: e.target.value })}
                       placeholder="100"
-                      className="w-full px-4 py-3 pl-8 border border-border bg-transparent text-foreground placeholder:text-muted/50 focus:outline-none focus:border-border-strong"
+                      className="brutal-input w-full pl-10 text-2xl font-black"
                     />
                   </div>
-                  <p className="text-xs text-muted mt-2">
-                    Choose an amount that hurts to lose. That&apos;s the point.
+                  <p className="text-sm mt-3 font-bold">
+                    💡 Choose an amount that hurts to lose. That&apos;s the point.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block font-mono text-xs uppercase tracking-widest text-muted mb-3">
-                    Validator Address
+                <div className="brutal-card p-6 bg-white">
+                  <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
+                    👤 Validator Address
                   </label>
                   <input
                     type="text"
                     value={formData.validatorAddress}
                     onChange={(e) => setFormData({ ...formData, validatorAddress: e.target.value })}
                     placeholder="0x..."
-                    className="w-full px-4 py-3 border border-border bg-transparent text-foreground placeholder:text-muted/50 focus:outline-none focus:border-border-strong font-mono text-sm"
+                    className="brutal-input w-full font-mono text-sm"
                   />
-                  <p className="text-xs text-muted mt-2">
+                  <p className="text-sm text-[var(--muted)] mt-3 font-medium">
                     Someone you trust to verify your completion. Their silence counts as rejection.
                   </p>
                 </div>
 
-                <div className="border border-border p-4 flex gap-3">
-                  <Info className="w-4 h-4 text-muted shrink-0 mt-0.5" />
-                  <div className="text-sm text-muted">
-                    <p className="font-medium text-foreground mb-1">How validation works</p>
-                    <p>After you claim completion, your validator has 24 hours to approve or reject. If they do nothing, you fail automatically.</p>
+                <div className="brutal-card p-5 bg-[var(--lavender)] flex gap-4">
+                  <Info className="w-6 h-6 shrink-0" />
+                  <div>
+                    <p className="font-bold mb-1">How validation works</p>
+                    <p className="text-sm">After you claim completion, your validator has 24 hours to approve or reject. If they do nothing, you fail automatically.</p>
                   </div>
                 </div>
               </div>
@@ -186,10 +186,10 @@ export default function CommitPage() {
           {step === 3 && (
             <div className="space-y-8">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2">
-                  Choose where failure goes
+                <h1 className="text-4xl font-black tracking-tight mb-3">
+                  Choose where <span className="bg-[var(--pink)] brutal-border px-2">failure</span> goes
                 </h1>
-                <p className="text-muted">
+                <p className="text-lg font-medium">
                   If you fail, this is where your money ends up.
                 </p>
               </div>
@@ -198,10 +198,10 @@ export default function CommitPage() {
                 {CHARITIES.map((charity) => (
                   <label
                     key={charity.id}
-                    className={`block border p-4 cursor-pointer transition-colors ${
+                    className={`block brutal-card p-5 cursor-pointer transition-all ${
                       formData.charityId === charity.id
-                        ? "border-border-strong bg-foreground/5"
-                        : "border-border hover:border-border-strong"
+                        ? "bg-[var(--mint)] -translate-y-1"
+                        : "bg-white hover:-translate-y-1"
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -214,20 +214,20 @@ export default function CommitPage() {
                         className="sr-only"
                       />
                       <div
-                        className={`w-4 h-4 border flex items-center justify-center ${
+                        className={`w-6 h-6 brutal-border flex items-center justify-center ${
                           formData.charityId === charity.id
-                            ? "border-border-strong"
-                            : "border-border"
+                            ? "bg-black"
+                            : "bg-white"
                         }`}
                       >
                         {formData.charityId === charity.id && (
-                          <div className="w-2 h-2 bg-foreground" />
+                          <span className="text-white text-sm">✓</span>
                         )}
                       </div>
                       <div>
-                        <p className="font-medium">{charity.name}</p>
+                        <p className="font-bold text-lg">{charity.name}</p>
                         {charity.address && (
-                          <p className="font-mono text-xs text-muted">{charity.address}</p>
+                          <p className="font-mono text-xs text-[var(--muted)]">{charity.address}</p>
                         )}
                       </div>
                     </div>
@@ -235,24 +235,24 @@ export default function CommitPage() {
                 ))}
 
                 {formData.charityId === "custom" && (
-                  <div className="ml-8">
+                  <div className="ml-10">
                     <input
                       type="text"
                       value={formData.customCharityAddress}
                       onChange={(e) => setFormData({ ...formData, customCharityAddress: e.target.value })}
                       placeholder="Enter charity wallet address (0x...)"
-                      className="w-full px-4 py-3 border border-border bg-transparent text-foreground placeholder:text-muted/50 focus:outline-none focus:border-border-strong font-mono text-sm"
+                      className="brutal-input w-full font-mono text-sm"
                     />
                   </div>
                 )}
               </div>
 
               {/* Final Warning */}
-              <div className="border border-warning/50 bg-warning/5 p-4 flex gap-3">
-                <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium mb-1">This action is irreversible</p>
-                  <p className="text-muted">
+              <div className="brutal-card p-5 bg-[var(--danger)] text-white flex gap-4">
+                <AlertTriangle className="w-6 h-6 shrink-0" />
+                <div>
+                  <p className="font-bold text-lg mb-1">⚠️ This action is IRREVERSIBLE</p>
+                  <p className="text-sm">
                     Once you submit, your funds will be locked. There is no cancel button. 
                     There is no refund if you fail. The system will do exactly what it promises.
                   </p>
@@ -262,12 +262,12 @@ export default function CommitPage() {
           )}
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-12 pt-8 border-t border-border">
+          <div className="flex items-center justify-between mt-12 pt-8 border-t-[3px] border-black">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="text-sm font-medium text-muted hover:text-foreground transition-colors"
+                className="brutal-btn bg-white px-5 py-3 font-bold"
               >
                 ← Back
               </button>
@@ -278,19 +278,21 @@ export default function CommitPage() {
             <button
               type="submit"
               disabled={!canProceed() || isSubmitting}
-              className="inline-flex items-center justify-center gap-2 bg-foreground text-background px-6 py-3 text-sm font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`brutal-btn px-8 py-4 font-bold inline-flex items-center gap-2 ${
+                step === 3 ? "bg-[var(--danger)] text-white" : "bg-[var(--pink)]"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isSubmitting ? (
-                "Locking funds..."
+                "🔒 Locking funds..."
               ) : step === 3 ? (
                 <>
-                  Lock Funds & Create Commitment
-                  <ArrowRight className="w-4 h-4" />
+                  🔒 Lock Funds & Create
+                  <ArrowRight className="w-5 h-5" />
                 </>
               ) : (
                 <>
                   Continue
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </button>

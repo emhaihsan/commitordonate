@@ -120,23 +120,25 @@ function TimelineStep({
   return (
     <div className="flex gap-4">
       <div className="flex flex-col items-center">
-        <div className={`w-3 h-3 rounded-full border-2 ${
-          status === "completed" ? "bg-foreground border-foreground" :
-          status === "current" ? "bg-transparent border-foreground" :
-          status === "failed" ? "bg-danger border-danger" :
-          "bg-transparent border-border"
-        }`} />
+        <div className={`w-8 h-8 brutal-border flex items-center justify-center text-sm font-bold ${
+          status === "completed" ? "bg-[var(--mint)]" :
+          status === "current" ? "bg-[var(--yellow)]" :
+          status === "failed" ? "bg-[var(--danger)] text-white" :
+          "bg-white text-[var(--muted)]"
+        }`}>
+          {status === "completed" ? "✓" : status === "failed" ? "✗" : status === "current" ? "→" : "○"}
+        </div>
         {!isLast && (
-          <div className={`w-px flex-1 min-h-[40px] ${
-            status === "completed" || status === "current" ? "bg-foreground" : "bg-border"
+          <div className={`w-1 flex-1 min-h-[40px] ${
+            status === "completed" || status === "current" ? "bg-black" : "bg-gray-300"
           }`} />
         )}
       </div>
       <div className="pb-8">
-        <p className={`font-medium ${status === "pending" ? "text-muted" : ""}`}>{title}</p>
-        <p className="text-sm text-muted mt-1">{description}</p>
+        <p className={`font-bold text-lg ${status === "pending" ? "text-[var(--muted)]" : ""}`}>{title}</p>
+        <p className="text-sm mt-1">{description}</p>
         {timestamp && (
-          <p className="font-mono text-xs text-muted mt-2">{formatDate(timestamp)}</p>
+          <p className="font-mono text-xs text-[var(--muted)] mt-2 font-medium">{formatDate(timestamp)}</p>
         )}
       </div>
     </div>
@@ -154,10 +156,11 @@ export default function CommitmentDetailPage() {
   if (!commitment) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Commitment not found</h1>
-          <Link href="/dashboard" className="text-muted hover:text-foreground transition-colors">
-            ← Back to Dashboard
+        <div className="text-center brutal-card p-12 bg-white">
+          <h1 className="text-3xl font-black mb-4">😕 Commitment not found</h1>
+          <Link href="/dashboard" className="brutal-btn bg-[var(--pink)] px-6 py-3 font-bold inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
           </Link>
         </div>
       </div>
@@ -285,73 +288,73 @@ export default function CommitmentDetailPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-4xl px-6 py-16">
+      <div className="mx-auto max-w-5xl px-6 py-12">
         {/* Back Link */}
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors mb-8"
+          className="brutal-btn bg-white px-4 py-2 font-bold inline-flex items-center gap-2 mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </Link>
 
         {/* Header */}
-        <div className="mb-12">
+        <div className="mb-10">
           <div className="flex items-start justify-between gap-4 mb-4">
-            <h1 className="text-3xl font-bold tracking-tight">{commitment.commitment}</h1>
-            <div className={`flex items-center gap-2 px-3 py-1.5 border ${
-              commitment.status === "success" ? "border-success text-success" :
-              commitment.status === "failed" ? "border-danger text-danger" :
-              commitment.status === "pending_validation" ? "border-warning text-warning" :
-              "border-border-strong"
+            <h1 className="text-4xl font-black tracking-tight">{commitment.commitment}</h1>
+            <div className={`brutal-btn px-4 py-2 flex items-center gap-2 font-bold ${
+              commitment.status === "success" ? "bg-[var(--mint)]" :
+              commitment.status === "failed" ? "bg-[var(--danger)] text-white" :
+              commitment.status === "pending_validation" ? "bg-[var(--yellow)]" :
+              "bg-[var(--cyan)]"
             }`}>
-              {commitment.status === "success" && <CheckCircle className="w-4 h-4" />}
-              {commitment.status === "failed" && <XCircle className="w-4 h-4" />}
-              {commitment.status === "pending_validation" && <Clock className="w-4 h-4" />}
-              {commitment.status === "active" && <Clock className="w-4 h-4" />}
-              <span className="text-sm font-medium uppercase">
+              {commitment.status === "success" && <CheckCircle className="w-5 h-5" />}
+              {commitment.status === "failed" && <XCircle className="w-5 h-5" />}
+              {commitment.status === "pending_validation" && <Clock className="w-5 h-5" />}
+              {commitment.status === "active" && <Clock className="w-5 h-5" />}
+              <span className="text-sm uppercase">
                 {commitment.status === "pending_validation" ? "Awaiting Validator" : commitment.status}
               </span>
             </div>
           </div>
           {commitment.description && (
-            <p className="text-muted">{commitment.description}</p>
+            <p className="text-lg font-medium">{commitment.description}</p>
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             {/* Action Card (for active commitments) */}
             {commitment.status === "active" && (
-              <div className="border border-border-strong p-6">
-                <h2 className="font-semibold mb-4">Ready to confirm completion?</h2>
-                <p className="text-sm text-muted mb-6">
+              <div className="brutal-card p-6 bg-[var(--cyan)]">
+                <h2 className="font-black text-xl mb-4">🎯 Ready to confirm completion?</h2>
+                <p className="text-sm mb-6">
                   Once you confirm, your validator has 24 hours to approve or reject. 
-                  If they don&apos;t respond, you will be marked as failed.
+                  <span className="font-bold"> If they don&apos;t respond, you will be marked as failed.</span>
                 </p>
                 <button
                   onClick={handleConfirmCompletion}
                   disabled={isConfirming}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-foreground text-background px-6 py-3 text-sm font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                  className="w-full brutal-btn bg-black text-white px-6 py-4 font-bold disabled:opacity-50"
                 >
-                  {isConfirming ? "Confirming..." : "Confirm Completion"}
+                  {isConfirming ? "✅ Confirming..." : "✅ Confirm Completion"}
                 </button>
               </div>
             )}
 
             {/* Pending Validation Warning */}
             {commitment.status === "pending_validation" && (
-              <div className="border border-warning p-6">
-                <div className="flex gap-3">
-                  <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+              <div className="brutal-card p-6 bg-[var(--yellow)]">
+                <div className="flex gap-4">
+                  <AlertTriangle className="w-8 h-8 shrink-0" />
                   <div>
-                    <h2 className="font-semibold mb-2">Awaiting Validator Response</h2>
-                    <p className="text-sm text-muted mb-4">
+                    <h2 className="font-black text-xl mb-2">⏳ Awaiting Validator Response</h2>
+                    <p className="text-sm mb-4">
                       Your validator has been notified. They have 24 hours to approve or reject your completion claim.
                     </p>
-                    <p className="text-sm text-muted">
-                      <strong className="text-foreground">Remember:</strong> If the validator does not respond within 24 hours, 
+                    <p className="text-sm font-bold">
+                      ⚠️ If the validator does not respond within 24 hours, 
                       your commitment will be marked as failed and funds will be donated.
                     </p>
                   </div>
@@ -361,12 +364,12 @@ export default function CommitmentDetailPage() {
 
             {/* Failed Notice */}
             {commitment.status === "failed" && (
-              <div className="border border-danger p-6">
-                <div className="flex gap-3">
-                  <XCircle className="w-5 h-5 text-danger shrink-0" />
+              <div className="brutal-card p-6 bg-[var(--danger)] text-white">
+                <div className="flex gap-4">
+                  <XCircle className="w-8 h-8 shrink-0" />
                   <div>
-                    <h2 className="font-semibold mb-2">Commitment Failed</h2>
-                    <p className="text-sm text-muted mb-4">
+                    <h2 className="font-black text-xl mb-2">💀 Commitment Failed</h2>
+                    <p className="text-sm mb-4">
                       Your ${commitment.stakeAmount} has been donated to {commitment.charity}.
                     </p>
                     {commitment.donationTxHash && (
@@ -374,10 +377,10 @@ export default function CommitmentDetailPage() {
                         href={`https://etherscan.io/tx/${commitment.donationTxHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+                        className="brutal-btn bg-white text-black px-4 py-2 inline-flex items-center gap-2 font-bold text-sm"
                       >
                         View donation transaction
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-4 h-4" />
                       </a>
                     )}
                   </div>
@@ -387,14 +390,14 @@ export default function CommitmentDetailPage() {
 
             {/* Success Notice */}
             {commitment.status === "success" && (
-              <div className="border border-success p-6">
-                <div className="flex gap-3">
-                  <CheckCircle className="w-5 h-5 text-success shrink-0" />
+              <div className="brutal-card p-6 bg-[var(--mint)]">
+                <div className="flex gap-4">
+                  <CheckCircle className="w-8 h-8 shrink-0" />
                   <div>
-                    <h2 className="font-semibold mb-2">Commitment Successful</h2>
-                    <p className="text-sm text-muted">
+                    <h2 className="font-black text-xl mb-2">🏆 Commitment Successful!</h2>
+                    <p className="text-sm">
                       Your ${commitment.stakeAmount} has been returned to your wallet. 
-                      You kept your promise.
+                      <span className="font-bold"> You kept your promise.</span>
                     </p>
                   </div>
                 </div>
@@ -402,8 +405,8 @@ export default function CommitmentDetailPage() {
             )}
 
             {/* Timeline */}
-            <div className="border border-border p-6">
-              <h2 className="font-semibold mb-6">Timeline</h2>
+            <div className="brutal-card p-6 bg-white">
+              <h2 className="font-black text-xl mb-6">📅 Timeline</h2>
               <div>
                 {getTimelineSteps().map((step, index) => (
                   <TimelineStep
@@ -422,49 +425,49 @@ export default function CommitmentDetailPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Details */}
-            <div className="border border-border p-6">
-              <h2 className="font-semibold mb-6">Details</h2>
+            <div className="brutal-card p-6 bg-white">
+              <h2 className="font-black text-xl mb-6">📋 Details</h2>
               <div className="space-y-4">
-                <div>
-                  <p className="font-mono text-xs text-muted mb-1">STAKE AMOUNT</p>
-                  <p className="font-mono text-xl font-bold">${commitment.stakeAmount}</p>
+                <div className="brutal-card p-4 bg-[var(--yellow)]">
+                  <p className="font-mono text-xs mb-1 font-bold">💰 STAKE AMOUNT</p>
+                  <p className="font-mono text-3xl font-black">${commitment.stakeAmount}</p>
                 </div>
-                <div className="border-t border-border pt-4">
-                  <p className="font-mono text-xs text-muted mb-1">DEADLINE</p>
-                  <p className="text-sm">{formatDate(commitment.deadline)}</p>
+                <div className="brutal-card p-4 bg-white">
+                  <p className="font-mono text-xs mb-1 font-bold">⏰ DEADLINE</p>
+                  <p className="text-sm font-bold">{formatDate(commitment.deadline)}</p>
                 </div>
-                <div className="border-t border-border pt-4">
-                  <p className="font-mono text-xs text-muted mb-1">VALIDATOR</p>
+                <div className="brutal-card p-4 bg-[var(--lavender)]">
+                  <p className="font-mono text-xs mb-1 font-bold">👤 VALIDATOR</p>
                   <div className="flex items-center gap-2">
-                    <p className="font-mono text-sm">{formatAddress(commitment.validator)}</p>
+                    <p className="font-mono text-sm font-medium">{formatAddress(commitment.validator)}</p>
                     <button
                       onClick={() => copyToClipboard(commitment.validator)}
-                      className="text-muted hover:text-foreground transition-colors"
+                      className="brutal-btn bg-white p-1"
                     >
-                      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
-                <div className="border-t border-border pt-4">
-                  <p className="font-mono text-xs text-muted mb-1">CHARITY</p>
-                  <p className="text-sm mb-1">{commitment.charity}</p>
-                  <p className="font-mono text-xs text-muted">{formatAddress(commitment.charityAddress)}</p>
+                <div className="brutal-card p-4 bg-[var(--pink)]">
+                  <p className="font-mono text-xs mb-1 font-bold">🎯 CHARITY</p>
+                  <p className="font-bold mb-1">{commitment.charity}</p>
+                  <p className="font-mono text-xs">{formatAddress(commitment.charityAddress)}</p>
                 </div>
               </div>
             </div>
 
             {/* Transaction */}
             {commitment.txHash && (
-              <div className="border border-border p-6">
-                <h2 className="font-semibold mb-4">Transaction</h2>
+              <div className="brutal-card p-6 bg-white">
+                <h2 className="font-black text-lg mb-4">🔗 Transaction</h2>
                 <a
                   href={`https://etherscan.io/tx/${commitment.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+                  className="brutal-btn bg-[var(--cyan)] px-4 py-2 inline-flex items-center gap-2 font-bold text-sm"
                 >
                   <span className="font-mono">{formatAddress(commitment.txHash)}</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
             )}

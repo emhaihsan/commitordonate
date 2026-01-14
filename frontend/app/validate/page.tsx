@@ -104,7 +104,6 @@ function ValidationCard({ validation }: { validation: PendingValidation }) {
     setIsApproving(true);
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsApproving(false);
-    // In real app, refresh data
   };
 
   const handleReject = async () => {
@@ -112,57 +111,56 @@ function ValidationCard({ validation }: { validation: PendingValidation }) {
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsRejecting(false);
     setShowConfirmReject(false);
-    // In real app, refresh data
   };
 
   return (
-    <div className="border border-border">
+    <div className="brutal-card bg-white">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-border-strong flex items-center justify-center">
-              <User className="w-5 h-5" />
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 brutal-border bg-[var(--lavender)] flex items-center justify-center">
+              <User className="w-7 h-7" />
             </div>
             <div>
-              <p className="font-medium">{validation.committer}</p>
-              <p className="font-mono text-xs text-muted">{formatAddress(validation.committerAddress)}</p>
+              <p className="font-bold text-xl">{validation.committer}</p>
+              <p className="font-mono text-xs text-[var(--muted)]">{formatAddress(validation.committerAddress)}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-warning">
+          <div className="brutal-btn bg-[var(--orange)] px-4 py-2 flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            <span className="font-mono text-sm">{formatTimeRemaining(validation.expiresAt)} left</span>
+            <span className="font-mono text-sm font-bold">{formatTimeRemaining(validation.expiresAt)} left</span>
           </div>
         </div>
 
         {/* Commitment */}
-        <div className="mb-6">
-          <p className="font-mono text-xs text-muted mb-2">COMMITMENT</p>
-          <p className="text-lg font-medium">{validation.commitment}</p>
+        <div className="mb-6 brutal-card p-4 bg-[var(--background)]">
+          <p className="font-mono text-xs mb-2 font-bold">📋 COMMITMENT</p>
+          <p className="text-xl font-bold">{validation.commitment}</p>
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-6 py-4 border-t border-b border-border">
-          <div>
-            <p className="font-mono text-xs text-muted mb-1">STAKE</p>
-            <p className="font-mono font-bold">${validation.stakeAmount}</p>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="brutal-card p-4 bg-[var(--yellow)]">
+            <p className="font-mono text-xs mb-1 font-bold">💰 STAKE</p>
+            <p className="font-mono font-black text-2xl">${validation.stakeAmount}</p>
           </div>
-          <div>
-            <p className="font-mono text-xs text-muted mb-1">CONFIRMED</p>
-            <p className="text-sm">{formatDate(validation.confirmedAt)}</p>
+          <div className="brutal-card p-4 bg-white">
+            <p className="font-mono text-xs mb-1 font-bold">✅ CONFIRMED</p>
+            <p className="text-sm font-bold">{formatDate(validation.confirmedAt)}</p>
           </div>
-          <div>
-            <p className="font-mono text-xs text-muted mb-1">IF REJECTED</p>
-            <p className="text-sm">→ {validation.charity}</p>
+          <div className="brutal-card p-4 bg-[var(--pink)]">
+            <p className="font-mono text-xs mb-1 font-bold">🎯 IF REJECTED</p>
+            <p className="text-sm font-bold">→ {validation.charity}</p>
           </div>
         </div>
 
         {/* Warning */}
-        <div className="bg-foreground/5 p-4 mb-6">
+        <div className="brutal-card p-4 bg-[var(--warning)]/20 border-[var(--warning)] mb-6">
           <div className="flex gap-3">
-            <AlertTriangle className="w-4 h-4 text-muted shrink-0 mt-0.5" />
-            <p className="text-sm text-muted">
-              <strong className="text-foreground">Your decision is final.</strong> If you approve, the committer 
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <p className="text-sm">
+              <strong>Your decision is final.</strong> If you approve, the committer 
               gets their ${validation.stakeAmount} back. If you reject or do nothing, the money goes to {validation.charity}.
             </p>
           </div>
@@ -174,42 +172,42 @@ function ValidationCard({ validation }: { validation: PendingValidation }) {
             <button
               onClick={handleApprove}
               disabled={isApproving}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-success text-white px-6 py-3 text-sm font-medium hover:bg-success/90 transition-colors disabled:opacity-50"
+              className="flex-1 brutal-btn bg-[var(--mint)] px-6 py-4 font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isApproving ? (
-                "Approving..."
+                "✅ Approving..."
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="w-5 h-5" />
                   Approve Completion
                 </>
               )}
             </button>
             <button
               onClick={() => setShowConfirmReject(true)}
-              className="flex-1 inline-flex items-center justify-center gap-2 border border-danger text-danger px-6 py-3 text-sm font-medium hover:bg-danger hover:text-white transition-colors"
+              className="flex-1 brutal-btn bg-white px-6 py-4 font-bold inline-flex items-center justify-center gap-2 hover:bg-[var(--danger)] hover:text-white"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-5 h-5" />
               Reject
             </button>
           </div>
         ) : (
-          <div className="border border-danger p-4">
-            <p className="text-sm mb-4">
-              Are you sure you want to reject? This will donate ${validation.stakeAmount} to {validation.charity}. 
-              This action cannot be undone.
+          <div className="brutal-card p-5 bg-[var(--danger)]/10 border-[var(--danger)]">
+            <p className="text-sm mb-4 font-medium">
+              ⚠️ Are you sure you want to reject? This will donate ${validation.stakeAmount} to {validation.charity}. 
+              <strong> This action cannot be undone.</strong>
             </p>
             <div className="flex gap-4">
               <button
                 onClick={handleReject}
                 disabled={isRejecting}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-danger text-white px-6 py-3 text-sm font-medium hover:bg-danger/90 transition-colors disabled:opacity-50"
+                className="flex-1 brutal-btn bg-[var(--danger)] text-white px-6 py-3 font-bold disabled:opacity-50"
               >
-                {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+                {isRejecting ? "💀 Rejecting..." : "💀 Confirm Rejection"}
               </button>
               <button
                 onClick={() => setShowConfirmReject(false)}
-                className="flex-1 inline-flex items-center justify-center gap-2 border border-border px-6 py-3 text-sm font-medium hover:border-border-strong transition-colors"
+                className="flex-1 brutal-btn bg-white px-6 py-3 font-bold"
               >
                 Cancel
               </button>
@@ -224,24 +222,24 @@ function ValidationCard({ validation }: { validation: PendingValidation }) {
 export default function ValidatePage() {
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-4xl px-6 py-16">
+      <div className="mx-auto max-w-5xl px-6 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted mb-2">
-            Validator Portal
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight mb-4">Pending Validations</h1>
-          <p className="text-muted max-w-2xl">
+        <div className="mb-10">
+          <div className="brutal-btn inline-block bg-[var(--lavender)] px-4 py-2 text-sm font-bold mb-4">
+            ⚖️ VALIDATOR PORTAL
+          </div>
+          <h1 className="text-4xl font-black tracking-tight mb-4">Pending Validations</h1>
+          <p className="text-lg font-medium max-w-2xl">
             These people have named you as their validator. Your response determines whether they 
-            get their money back or it goes to charity. Silence counts as rejection.
+            get their money back or it goes to charity. <span className="text-[var(--danger)] font-bold">Silence counts as rejection.</span>
           </p>
         </div>
 
         {/* Pending Validations */}
         <section className="mb-12">
           {MOCK_PENDING.length === 0 ? (
-            <div className="border border-border p-12 text-center">
-              <p className="text-muted">No pending validations</p>
+            <div className="brutal-card p-12 text-center bg-white">
+              <p className="text-[var(--muted)] font-medium">No pending validations</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -254,55 +252,56 @@ export default function ValidatePage() {
 
         {/* Past Validations */}
         <section>
-          <h2 className="text-xl font-semibold mb-6 pb-4 border-b border-border">
-            Past Validations
+          <h2 className="text-2xl font-black mb-6 flex items-center gap-3">
+            <span className="bg-[var(--mint)] brutal-border px-3 py-1">Past</span>
+            Validations
           </h2>
           
           {MOCK_PAST.length === 0 ? (
-            <div className="border border-border p-12 text-center">
-              <p className="text-muted">No past validations</p>
+            <div className="brutal-card p-12 text-center bg-white">
+              <p className="text-[var(--muted)] font-medium">No past validations</p>
             </div>
           ) : (
-            <div className="border border-border">
+            <div className="brutal-card bg-white overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                  <tr className="border-b-[3px] border-black bg-[var(--background)]">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Commitment
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Committer
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Stake
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Your Decision
                     </th>
-                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest text-muted font-normal">
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Date
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {MOCK_PAST.map((validation) => (
-                    <tr key={validation.id} className="border-b border-border last:border-b-0">
-                      <td className="p-4">{validation.commitment}</td>
-                      <td className="p-4">{validation.committer}</td>
-                      <td className="p-4 font-mono">${validation.stakeAmount}</td>
+                    <tr key={validation.id} className="border-b-[2px] border-black last:border-b-0 hover:bg-[var(--background)]">
+                      <td className="p-4 font-bold">{validation.commitment}</td>
+                      <td className="p-4 font-medium">{validation.committer}</td>
+                      <td className="p-4 font-mono font-bold">${validation.stakeAmount}</td>
                       <td className="p-4">
-                        <div className={`flex items-center gap-2 ${
-                          validation.outcome === "approved" ? "text-success" : "text-danger"
+                        <div className={`brutal-btn inline-flex px-3 py-1 items-center gap-2 ${
+                          validation.outcome === "approved" ? "bg-[var(--mint)]" : "bg-[var(--danger)] text-white"
                         }`}>
                           {validation.outcome === "approved" ? (
                             <CheckCircle className="w-4 h-4" />
                           ) : (
                             <XCircle className="w-4 h-4" />
                           )}
-                          <span className="text-sm capitalize">{validation.outcome}</span>
+                          <span className="text-sm font-bold capitalize">{validation.outcome}</span>
                         </div>
                       </td>
-                      <td className="p-4 font-mono text-sm text-muted">
+                      <td className="p-4 font-mono text-sm font-medium">
                         {formatDate(validation.resolvedAt)}
                       </td>
                     </tr>
@@ -314,27 +313,27 @@ export default function ValidatePage() {
         </section>
 
         {/* Info Section */}
-        <section className="mt-12 border-t border-border pt-12">
-          <h2 className="text-xl font-semibold mb-6">How Validation Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="border border-border p-6">
-              <p className="font-mono text-sm text-muted mb-2">01</p>
-              <h3 className="font-semibold mb-2">You Were Chosen</h3>
-              <p className="text-sm text-muted">
+        <section className="mt-12 bg-[var(--cyan)] brutal-border p-8">
+          <h2 className="text-2xl font-black mb-6">How Validation Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="brutal-card p-6 bg-white">
+              <div className="brutal-btn inline-block bg-[var(--pink)] px-3 py-1 text-xs font-bold mb-3">01</div>
+              <h3 className="font-black text-lg mb-2">You Were Chosen</h3>
+              <p className="text-sm">
                 Someone trusted you enough to stake real money on your judgment.
               </p>
             </div>
-            <div className="border border-border p-6">
-              <p className="font-mono text-sm text-muted mb-2">02</p>
-              <h3 className="font-semibold mb-2">24 Hour Window</h3>
-              <p className="text-sm text-muted">
+            <div className="brutal-card p-6 bg-white">
+              <div className="brutal-btn inline-block bg-[var(--yellow)] px-3 py-1 text-xs font-bold mb-3">02</div>
+              <h3 className="font-black text-lg mb-2">24 Hour Window</h3>
+              <p className="text-sm">
                 You have 24 hours from when they confirm completion. After that, silence = rejection.
               </p>
             </div>
-            <div className="border border-border p-6">
-              <p className="font-mono text-sm text-muted mb-2">03</p>
-              <h3 className="font-semibold mb-2">Be Honest</h3>
-              <p className="text-sm text-muted">
+            <div className="brutal-card p-6 bg-white">
+              <div className="brutal-btn inline-block bg-[var(--lavender)] px-3 py-1 text-xs font-bold mb-3">03</div>
+              <h3 className="font-black text-lg mb-2">Be Honest</h3>
+              <p className="text-sm">
                 Your decision is final and on-chain. The system trusts your judgment completely.
               </p>
             </div>

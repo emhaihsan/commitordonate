@@ -115,3 +115,18 @@ export function parseAmount(amount: string, decimals: number = 6): bigint {
   const value = parseFloat(amount) * Math.pow(10, decimals);
   return BigInt(Math.floor(value));
 }
+
+// Explorer URL helpers for Arbitrum Sepolia
+export const EXPLORER_URL = "https://sepolia.arbiscan.io";
+
+export function getExplorerTxUrl(txHash: string): string {
+  return `${EXPLORER_URL}/tx/${txHash}`;
+}
+
+export function getExplorerAddressUrl(address: string): string {
+  return `${EXPLORER_URL}/address/${address}`;
+}
+
+export function formatTxHash(hash: string): string {
+  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+}

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Clock, CheckCircle, XCircle, AlertTriangle, User, Loader2 } from "lucide-react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
+import { useAccount } from "wagmi";
 import { useCommitmentVault } from "@/lib/hooks/useContracts";
 import { 
   CommitmentStatus as ContractStatus, 
@@ -12,6 +13,8 @@ import {
   formatAddress as formatAddr,
   formatAmountByToken,
   getCurrencySymbol,
+  getExplorerTxUrl,
+  formatTxHash,
 } from "@/lib/contracts";
 
 interface PendingValidation {
@@ -68,13 +71,16 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
   const [isRejecting, setIsRejecting] = useState(false);
   const [showConfirmReject, setShowConfirmReject] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionTxHash, setActionTxHash] = useState<string | null>(null);
   const { approve, reject } = useCommitmentVault();
 
   const handleApprove = async () => {
     setIsApproving(true);
     setError(null);
+    setActionTxHash(null);
     try {
-      await approve(BigInt(validation.id));
+      const result = await approve(BigInt(validation.id));
+      setActionTxHash(result.txHash);
       onAction?.();
     } catch (err: any) {
       setError(err.message || "Failed to approve");
@@ -85,8 +91,10 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
   const handleReject = async () => {
     setIsRejecting(true);
     setError(null);
+    setActionTxHash(null);
     try {
-      await reject(BigInt(validation.id));
+      const result = await reject(BigInt(validation.id));
+      setActionTxHash(result.txHash);
       onAction?.();
     } catch (err: any) {
       setError(err.message || "Failed to reject");
@@ -203,21 +211,41 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
             </div>
           </div>
         )}
+
+        {/* Transaction Hash Display */}
+        {actionTxHash && (
+          <div className="mt-4 p-3 bg-green-100 border-2 border-green-500 rounded-lg">
+            <div className="flex items-center gap-2 text-green-700">
+              <CheckCircle className="w-4 h-4" />
+              <span className="font-bold text-sm">Action completed!</span>
+            </div>
+            <a
+              href={getExplorerTxUrl(actionTxHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs font-mono text-green-600 hover:underline mt-1"
+            >
+              <Clock className="w-3 h-3" />
+              View on Arbiscan: {formatTxHash(actionTxHash)}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default function ValidatePage() {
-  const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
+  const { isInitialized, isConnected } = useWeb3Auth();
+  const { connect } = useWeb3AuthConnect();
+  const { address } = useAccount();
   const { getValidatorCommitments, getCommitment } = useCommitmentVault();
 
   const [pendingValidations, setPendingValidations] = useState<PendingValidation[]>([]);
   const [pastValidations, setPastValidations] = useState<PastValidation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+  const walletAddress = address as `0x${string}` | undefined;
 
   useEffect(() => {
     if (walletAddress) {
@@ -273,7 +301,7 @@ export default function ValidatePage() {
     setIsLoading(false);
   };
 
-  if (!ready) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-8 bg-white text-center">
@@ -284,14 +312,14 @@ export default function ValidatePage() {
     );
   }
 
-  if (!authenticated) {
+  if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-12 bg-white text-center max-w-md">
           <h1 className="text-3xl font-black mb-4">🔐 Login Required</h1>
           <p className="text-lg mb-6">Connect your wallet to see validations assigned to you.</p>
           <button
-            onClick={login}
+            onClick={() => connect()}
             className="brutal-btn bg-[var(--pink)] px-8 py-4 font-bold text-lg"
           >
             Connect Wallet

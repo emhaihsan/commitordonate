@@ -14,7 +14,7 @@ import {
   Check,
   Loader2
 } from "lucide-react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { useCommitmentVault } from "@/lib/hooks/useContracts";
 import { 
   CommitmentStatus as ContractStatus, 
@@ -24,6 +24,8 @@ import {
   formatAmountByToken,
   getCurrencySymbol,
   isETH,
+  getExplorerTxUrl,
+  formatTxHash,
 } from "@/lib/contracts";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
@@ -115,7 +117,7 @@ function TimelineStep({
 export default function CommitmentDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { ready, authenticated, login } = usePrivy();
+  const { isInitialized } = useWeb3Auth();
   const { getCommitment, confirmCompletion: confirmCompletionContract } = useCommitmentVault();
   
   const [commitment, setCommitment] = useState<CommitmentDetail | null>(null);
@@ -123,6 +125,7 @@ export default function CommitmentDetailPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmTxHash, setConfirmTxHash] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -156,7 +159,7 @@ export default function CommitmentDetailPage() {
     setIsLoading(false);
   };
 
-  if (!ready || isLoading) {
+  if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-8 bg-white text-center">
@@ -184,8 +187,10 @@ export default function CommitmentDetailPage() {
   const handleConfirmCompletion = async () => {
     setIsConfirming(true);
     setError(null);
+    setConfirmTxHash(null);
     try {
-      await confirmCompletionContract(BigInt(id));
+      const result = await confirmCompletionContract(BigInt(id));
+      setConfirmTxHash(result.txHash);
       await loadCommitment();
     } catch (err: any) {
       setError(err.message || "Failed to confirm completion");
@@ -359,6 +364,23 @@ export default function CommitmentDetailPage() {
                 >
                   {isConfirming ? "✅ Confirming..." : "✅ Confirm Completion"}
                 </button>
+                {confirmTxHash && (
+                  <div className="mt-4 p-3 bg-green-100 border-2 border-green-500 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="font-bold text-sm">Confirmation submitted!</span>
+                    </div>
+                    <a
+                      href={getExplorerTxUrl(confirmTxHash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-mono text-green-600 hover:underline mt-1"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      View on Arbiscan: {formatTxHash(confirmTxHash)}
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 

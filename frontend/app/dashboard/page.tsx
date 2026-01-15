@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Plus, Flame, Trophy, Skull, Loader2 } from "lucide-react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useSearchParams } from "next/navigation";
+import { Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Plus, Flame, Trophy, Skull, Loader2, ExternalLink, X } from "lucide-react";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
+import { useAccount } from "wagmi";
 import { useCommitmentVault } from "@/lib/hooks/useContracts";
 import { 
   CommitmentStatus as ContractStatus, 
@@ -14,6 +16,8 @@ import {
   getCurrencySymbol,
   isETH,
   MOCKUSDC_ADDRESS,
+  getExplorerTxUrl,
+  formatTxHash,
 } from "@/lib/contracts";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
@@ -116,15 +120,31 @@ function formatTimeRemaining(deadline: string) {
   return `${hours}h remaining`;
 }
 
-export default function DashboardPage() {
-  const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const { isInitialized, isConnected } = useWeb3Auth();
+  const { connect } = useWeb3AuthConnect();
+  const { address } = useAccount();
   const { getUserCommitments, getCommitment } = useCommitmentVault();
 
   const [commitments, setCommitments] = useState<DisplayCommitment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [createdTxHash, setCreatedTxHash] = useState<string | null>(null);
 
-  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+  // Check for commitment creation success from URL params
+  useEffect(() => {
+    const created = searchParams.get('created');
+    const txHash = searchParams.get('txHash');
+    if (created === 'true' && txHash) {
+      setShowSuccessBanner(true);
+      setCreatedTxHash(txHash);
+      // Clear URL params after showing
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [searchParams]);
+
+  const walletAddress = address as `0x${string}` | undefined;
 
   useEffect(() => {
     if (walletAddress) {
@@ -177,7 +197,7 @@ export default function DashboardPage() {
   const successCount = commitments.filter((c) => c.status === "success").length;
   const failedCount = commitments.filter((c) => c.status === "failed").length;
 
-  if (!ready) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-8 bg-white text-center">
@@ -188,14 +208,14 @@ export default function DashboardPage() {
     );
   }
 
-  if (!authenticated) {
+  if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-12 bg-white text-center max-w-md">
           <h1 className="text-3xl font-black mb-4">🔐 Login Required</h1>
           <p className="text-lg mb-6">Connect your wallet to view your commitments.</p>
           <button
-            onClick={login}
+            onClick={() => connect()}
             className="brutal-btn bg-[var(--pink)] px-8 py-4 font-bold text-lg"
           >
             Connect Wallet
@@ -208,6 +228,35 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl px-6 py-12">
+        {/* Success Banner */}
+        {showSuccessBanner && createdTxHash && (
+          <div className="mb-6 brutal-card p-4 bg-green-100 border-2 border-green-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <p className="font-bold text-green-800">Commitment created successfully!</p>
+                  <a
+                    href={getExplorerTxUrl(createdTxHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm font-mono text-green-600 hover:underline"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View on Arbiscan: {formatTxHash(createdTxHash)}
+                  </a>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSuccessBanner(false)}
+                className="p-1 hover:bg-green-200 rounded"
+              >
+                <X className="w-5 h-5 text-green-600" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
@@ -394,5 +443,20 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-8 bg-white text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="font-bold">Loading dashboard...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight, Info, Loader2 } from "lucide-react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { AlertTriangle, ArrowRight, Info, Loader2, ExternalLink, CheckCircle } from "lucide-react";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
+import { useAccount } from "wagmi";
 import { useCommitmentVault, useMockUSDC } from "@/lib/hooks/useContracts";
-import { CHARITIES, VAULT_ADDRESS, parseAmount, formatAmount } from "@/lib/contracts";
+import { CHARITIES, VAULT_ADDRESS, parseAmount, formatAmount, getExplorerTxUrl, formatTxHash } from "@/lib/contracts";
 import { parseEther, formatEther } from "viem";
 
 export default function CommitPage() {
   const router = useRouter();
-  const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
+  const { isInitialized, isConnected } = useWeb3Auth();
+  const { connect } = useWeb3AuthConnect();
+  const { address } = useAccount();
   const { createCommitmentToken, createCommitmentETH, isLoading: isCreating } = useCommitmentVault();
   const { getBalance, getAllowance, approveToken, faucet, isLoading: isTokenLoading } = useMockUSDC();
 
@@ -42,8 +44,9 @@ export default function CommitPage() {
   const [needsApproval, setNeedsApproval] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClaimingFaucet, setIsClaimingFaucet] = useState(false);
+  const [faucetTxHash, setFaucetTxHash] = useState<string | null>(null);
 
-  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+  const walletAddress = address as `0x${string}` | undefined;
 
   useEffect(() => {
     if (walletAddress) {
@@ -73,8 +76,10 @@ export default function CommitPage() {
   const handleClaimFaucet = async () => {
     setIsClaimingFaucet(true);
     setError(null);
+    setFaucetTxHash(null);
     try {
-      await faucet();
+      const result = await faucet();
+      setFaucetTxHash(result.txHash);
       // Wait a bit for transaction to be mined
       await new Promise(resolve => setTimeout(resolve, 2000));
       await loadBalance();
@@ -106,8 +111,8 @@ export default function CommitPage() {
       return;
     }
 
-    if (!authenticated) {
-      login();
+    if (!isConnected) {
+      connect();
       return;
     }
 
@@ -138,7 +143,7 @@ export default function CommitPage() {
         throw new Error("Deadline must be in the future");
       }
 
-      let commitmentId: bigint | null;
+      let result: { commitmentId: bigint; txHash: string } | null;
 
       if (stakeType === "ETH") {
         // ETH staking
@@ -147,7 +152,7 @@ export default function CommitPage() {
           throw new Error("Stake amount must be greater than 0");
         }
 
-        commitmentId = await createCommitmentETH(
+        result = await createCommitmentETH(
           formData.validatorAddress as `0x${string}`,
           charityAddress,
           deadlineTimestamp,
@@ -170,7 +175,7 @@ export default function CommitPage() {
           throw new Error(`Insufficient allowance. Please approve USDC first.`);
         }
 
-        commitmentId = await createCommitmentToken(
+        result = await createCommitmentToken(
           formData.validatorAddress as `0x${string}`,
           charityAddress,
           process.env.NEXT_PUBLIC_MOCKUSDC_ADDRESS as `0x${string}`,
@@ -180,7 +185,9 @@ export default function CommitPage() {
         );
       }
 
-      router.push(`/dashboard?created=true&id=${commitmentId}`);
+      if (result) {
+        router.push(`/dashboard?created=true&id=${result.commitmentId}&txHash=${result.txHash}`);
+      }
     } catch (err: any) {
       console.error("Error creating commitment:", err);
       setError(err.message || "Failed to create commitment");
@@ -188,7 +195,7 @@ export default function CommitPage() {
     }
   };
 
-  if (!ready) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-8 bg-white text-center">
@@ -199,14 +206,14 @@ export default function CommitPage() {
     );
   }
 
-  if (!authenticated) {
+  if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="brutal-card p-12 bg-white text-center max-w-md">
           <h1 className="text-3xl font-black mb-4">🔐 Login Required</h1>
           <p className="text-lg mb-6">You need to connect your wallet to create a commitment.</p>
           <button
-            onClick={login}
+            onClick={() => connect()}
             className="brutal-btn bg-[var(--pink)] px-8 py-4 font-bold text-lg"
           >
             Connect Wallet
@@ -344,19 +351,38 @@ export default function CommitPage() {
 
                 {/* Balance Card - Only show for USDC */}
                 {stakeType === "USDC" && (
-                  <div className="brutal-card p-4 bg-[var(--mint)] flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-xs uppercase tracking-widest font-bold">Your USDC Balance</p>
-                      <p className="font-mono text-2xl font-black">${formatAmount(balance)}</p>
+                  <div className="brutal-card p-4 bg-[var(--mint)]">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-mono text-xs uppercase tracking-widest font-bold">Your USDC Balance</p>
+                        <p className="font-mono text-2xl font-black">${formatAmount(balance)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClaimFaucet}
+                        disabled={isClaimingFaucet}
+                        className="brutal-btn bg-[var(--cyan)] px-4 py-2 font-bold text-sm disabled:opacity-50"
+                      >
+                        {isClaimingFaucet ? "Claiming..." : "🚰 Get Test USDC"}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleClaimFaucet}
-                      disabled={isClaimingFaucet}
-                      className="brutal-btn bg-[var(--cyan)] px-4 py-2 font-bold text-sm disabled:opacity-50"
-                    >
-                      {isClaimingFaucet ? "Claiming..." : "🚰 Get Test USDC"}
-                    </button>
+                    {faucetTxHash && (
+                      <div className="mt-3 p-3 bg-green-100 border-2 border-green-500 rounded-lg">
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-bold text-sm">Faucet claimed!</span>
+                        </div>
+                        <a
+                          href={getExplorerTxUrl(faucetTxHash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-mono text-green-600 hover:underline mt-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {formatTxHash(faucetTxHash)}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 

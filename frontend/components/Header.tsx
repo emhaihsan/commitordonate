@@ -2,18 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWeb3Auth, useWeb3AuthConnect, useWeb3AuthDisconnect } from "@web3auth/modal/react";
+import { useAccount } from "wagmi";
 import { LogOut, Wallet, User, Copy, X, RefreshCw } from "lucide-react";
-import { formatAddress, MOCKUSDC_ADDRESS, isETH, formatAmountByToken } from "@/lib/contracts";
+import { formatAddress, MOCKUSDC_ADDRESS, formatAmountByToken } from "@/lib/contracts";
 import { createPublicClient, http } from "viem";
 import { arbitrumSepoliaCustom } from "@/lib/contracts";
 import MockUSDCABI from "@/lib/abis/MockUSDC.json";
 
 export default function Header() {
-  const { ready, authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
+  const { isInitialized, isConnected } = useWeb3Auth();
+  const { connect } = useWeb3AuthConnect();
+  const { disconnect } = useWeb3AuthDisconnect();
+  const { address } = useAccount();
 
-  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+  const walletAddress = address as `0x${string}` | undefined;
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [ethBalance, setEthBalance] = useState<bigint>(BigInt(0));
   const [usdcBalance, setUsdcBalance] = useState<bigint>(BigInt(0));
@@ -62,7 +65,7 @@ export default function Header() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await disconnect();
     window.location.href = "/";
   };
 
@@ -77,11 +80,11 @@ export default function Header() {
             💀 COMMIT_OR_DONATE
           </Link>
 
-          {!ready ? (
+          {!isInitialized ? (
             <div className="brutal-btn bg-gray-200 px-4 py-2 text-sm font-bold animate-pulse">
               Loading...
             </div>
-          ) : authenticated ? (
+          ) : isConnected ? (
             <nav className="flex items-center gap-3">
               <Link
                 href="/dashboard"
@@ -121,7 +124,7 @@ export default function Header() {
             </nav>
           ) : (
             <button
-              onClick={login}
+              onClick={() => connect()}
               className="brutal-btn bg-[var(--pink)] px-6 py-3 text-sm font-bold hover:bg-[var(--orange)] flex items-center gap-2"
             >
               <User className="w-4 h-4" />

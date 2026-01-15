@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 
 export default function CTAButton() {
-  const { ready, authenticated, login } = usePrivy();
+  const { isInitialized, isConnected } = useWeb3Auth();
+  const { connect } = useWeb3AuthConnect();
 
-  if (!ready) {
+  if (!isInitialized) {
     return (
       <div className="brutal-btn bg-black text-white px-10 py-5 text-xl font-bold animate-pulse">
         Loading...
@@ -15,10 +16,10 @@ export default function CTAButton() {
     );
   }
 
-  if (!authenticated) {
+  if (!isConnected) {
     return (
       <button
-        onClick={login}
+        onClick={() => connect()}
         className="brutal-btn bg-black text-white px-10 py-5 text-xl font-bold inline-flex items-center gap-3"
       >
         Get Started Now

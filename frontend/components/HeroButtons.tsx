@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 
 export default function HeroButtons() {
-  const { ready, authenticated, login } = usePrivy();
+  const { isInitialized, isConnected } = useWeb3Auth();
+  const { connect } = useWeb3AuthConnect();
 
-  if (!ready) {
+  if (!isInitialized) {
     return (
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="brutal-btn bg-gray-200 px-8 py-4 text-lg font-bold animate-pulse">
@@ -17,11 +18,11 @@ export default function HeroButtons() {
     );
   }
 
-  if (!authenticated) {
+  if (!isConnected) {
     return (
       <div className="flex flex-col sm:flex-row gap-4">
         <button
-          onClick={login}
+          onClick={() => connect()}
           className="brutal-btn bg-[var(--pink)] px-8 py-4 text-lg font-bold inline-flex items-center gap-3"
         >
           Get Started

@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useAccount, useWalletClient as useWagmiWalletClient } from "wagmi";
 import {
   createPublicClient,
-  createWalletClient,
-  custom,
   http,
   type PublicClient,
   type WalletClient,
@@ -30,41 +28,22 @@ export function usePublicClient(): PublicClient {
 }
 
 export function useCommitmentVault() {
-  const { authenticated } = usePrivy();
-  const { wallets } = useWallets();
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWagmiWalletClient();
   const publicClient = usePublicClient();
   const [isLoading, setIsLoading] = useState(false);
 
   const getActiveAccount = useCallback((): `0x${string}` => {
-    if (!authenticated || wallets.length === 0) {
+    if (!isConnected || !address) {
       throw new Error("No wallet connected");
     }
-    return wallets[0].address as `0x${string}`;
-  }, [authenticated, wallets]);
+    return address;
+  }, [isConnected, address]);
 
   const getWalletClient = useCallback(async (): Promise<WalletClient | null> => {
-    if (!authenticated || wallets.length === 0) return null;
-    const wallet = wallets[0];
-    await wallet.switchChain(arbitrumSepoliaCustom.id);
-    const provider = await wallet.getEthereumProvider();
-
-    // Use custom transport for signing, but with our custom chain RPC
-    return createWalletClient({
-      chain: arbitrumSepoliaCustom,
-      transport: custom(provider),
-      account: wallet.address as `0x${string}`,
-    });
-  }, [authenticated, wallets]);
-
-  // Helper to send transaction via our RPC after signing with Privy
-  const sendViaOurRpc = useCallback(async (
-    signedTx: `0x${string}`
-  ): Promise<`0x${string}`> => {
-    const hash = await publicClient.sendRawTransaction({
-      serializedTransaction: signedTx,
-    });
-    return hash;
-  }, [publicClient]);
+    if (!isConnected || !walletClient) return null;
+    return walletClient as WalletClient;
+  }, [isConnected, walletClient]);
 
   const getCommitment = useCallback(
     async (commitmentId: bigint): Promise<Commitment | null> => {
@@ -138,7 +117,7 @@ export function useCommitmentVault() {
       amount: bigint,
       deadline: bigint,
       description: string
-    ): Promise<bigint | null> => {
+    ): Promise<{ commitmentId: bigint; txHash: string } | null> => {
       setIsLoading(true);
       try {
         const walletClient = await getWalletClient();
@@ -153,11 +132,11 @@ export function useCommitmentVault() {
           account,
         });
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        await publicClient.waitForTransactionReceipt({ hash });
         
         const counter = await getCommitmentCounter();
         setIsLoading(false);
-        return counter;
+        return { commitmentId: counter, txHash: hash };
       } catch (error) {
         console.error("Error creating commitment:", error);
         setIsLoading(false);
@@ -174,7 +153,7 @@ export function useCommitmentVault() {
       deadline: bigint,
       description: string,
       amount: bigint
-    ): Promise<bigint | null> => {
+    ): Promise<{ commitmentId: bigint; txHash: string } | null> => {
       setIsLoading(true);
       try {
         const walletClient = await getWalletClient();
@@ -190,11 +169,11 @@ export function useCommitmentVault() {
           account,
         });
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        await publicClient.waitForTransactionReceipt({ hash });
         
         const counter = await getCommitmentCounter();
         setIsLoading(false);
-        return counter;
+        return { commitmentId: counter, txHash: hash };
       } catch (error) {
         console.error("Error creating commitment with ETH:", error);
         setIsLoading(false);
@@ -205,7 +184,7 @@ export function useCommitmentVault() {
   );
 
   const confirmCompletion = useCallback(
-    async (commitmentId: bigint): Promise<boolean> => {
+    async (commitmentId: bigint): Promise<{ success: boolean; txHash: string }> => {
       setIsLoading(true);
       try {
         // Must be called by commitment creator - use user wallet
@@ -223,7 +202,7 @@ export function useCommitmentVault() {
 
         await publicClient.waitForTransactionReceipt({ hash });
         setIsLoading(false);
-        return true;
+        return { success: true, txHash: hash };
       } catch (error) {
         console.error("Error confirming completion:", error);
         setIsLoading(false);
@@ -234,7 +213,7 @@ export function useCommitmentVault() {
   );
 
   const approve = useCallback(
-    async (commitmentId: bigint): Promise<boolean> => {
+    async (commitmentId: bigint): Promise<{ success: boolean; txHash: string }> => {
       setIsLoading(true);
       try {
         // Must be called by validator - use user wallet
@@ -252,7 +231,7 @@ export function useCommitmentVault() {
 
         await publicClient.waitForTransactionReceipt({ hash });
         setIsLoading(false);
-        return true;
+        return { success: true, txHash: hash };
       } catch (error) {
         console.error("Error approving commitment:", error);
         setIsLoading(false);
@@ -263,7 +242,7 @@ export function useCommitmentVault() {
   );
 
   const reject = useCallback(
-    async (commitmentId: bigint): Promise<boolean> => {
+    async (commitmentId: bigint): Promise<{ success: boolean; txHash: string }> => {
       setIsLoading(true);
       try {
         // Must be called by validator - use user wallet
@@ -281,7 +260,7 @@ export function useCommitmentVault() {
 
         await publicClient.waitForTransactionReceipt({ hash });
         setIsLoading(false);
-        return true;
+        return { success: true, txHash: hash };
       } catch (error) {
         console.error("Error rejecting commitment:", error);
         setIsLoading(false);
@@ -335,29 +314,22 @@ export function useCommitmentVault() {
 }
 
 export function useMockUSDC() {
-  const { authenticated } = usePrivy();
-  const { wallets } = useWallets();
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWagmiWalletClient();
   const publicClient = usePublicClient();
   const [isLoading, setIsLoading] = useState(false);
 
   const getActiveAccount = useCallback((): `0x${string}` => {
-    if (!authenticated || wallets.length === 0) {
+    if (!isConnected || !address) {
       throw new Error("No wallet connected");
     }
-    return wallets[0].address as `0x${string}`;
-  }, [authenticated, wallets]);
+    return address;
+  }, [isConnected, address]);
 
   const getWalletClient = useCallback(async (): Promise<WalletClient | null> => {
-    if (!authenticated || wallets.length === 0) return null;
-    const wallet = wallets[0];
-    await wallet.switchChain(arbitrumSepoliaCustom.id);
-    const provider = await wallet.getEthereumProvider();
-    return createWalletClient({
-      chain: arbitrumSepoliaCustom,
-      transport: custom(provider),
-      account: wallet.address as `0x${string}`,
-    });
-  }, [authenticated, wallets]);
+    if (!isConnected || !walletClient) return null;
+    return walletClient as WalletClient;
+  }, [isConnected, walletClient]);
 
   const getBalance = useCallback(
     async (address: `0x${string}`): Promise<bigint> => {
@@ -421,11 +393,10 @@ export function useMockUSDC() {
     [getWalletClient, publicClient]
   );
 
-  const faucet = useCallback(async (): Promise<boolean> => {
+  const faucet = useCallback(async (): Promise<{ success: boolean; txHash: string }> => {
     setIsLoading(true);
     try {
-      if (!authenticated || wallets.length === 0) throw new Error("No wallet connected");
-      const userAddress = wallets[0].address;
+      if (!isConnected || !address) throw new Error("No wallet connected");
 
       // Try sponsored faucet first (gasless)
       const response = await fetch("/api/sponsor", {
@@ -433,36 +404,38 @@ export function useMockUSDC() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "faucet",
-          userAddress,
+          userAddress: address,
         }),
       });
 
       const result = await response.json();
 
-      if (!response.ok) {
-        // If sponsor fails, fall back to user-signed transaction
-        const walletClient = await getWalletClient();
-        if (!walletClient) throw new Error("No wallet connected");
-        const account = getActiveAccount();
-
-        const hash = await walletClient.writeContract({
-          ...mockUsdcConfig,
-          functionName: "faucet",
-          chain: arbitrumSepoliaCustom,
-          account,
-        });
-
-        await publicClient.waitForTransactionReceipt({ hash });
+      if (response.ok && result.hash) {
+        setIsLoading(false);
+        return { success: true, txHash: result.hash };
       }
 
+      // If sponsor fails, fall back to user-signed transaction
+      const wc = await getWalletClient();
+      if (!wc) throw new Error("No wallet connected");
+      const account = getActiveAccount();
+
+      const hash = await wc.writeContract({
+        ...mockUsdcConfig,
+        functionName: "faucet",
+        chain: arbitrumSepoliaCustom,
+        account,
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash });
       setIsLoading(false);
-      return true;
+      return { success: true, txHash: hash };
     } catch (error) {
       console.error("Error claiming from faucet:", error);
       setIsLoading(false);
       throw error;
     }
-  }, [authenticated, wallets, getWalletClient, publicClient]);
+  }, [isConnected, address, getWalletClient, publicClient, getActiveAccount]);
 
   return {
     isLoading,

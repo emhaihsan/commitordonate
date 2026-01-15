@@ -1,30 +1,30 @@
 "use client";
 
-import { PrivyProvider } from "@privy-io/react-auth";
-import { arbitrumSepoliaCustom } from "./contracts";
+import { Web3AuthProvider } from "@web3auth/modal/react";
+import { WagmiProvider } from "@web3auth/modal/react/wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createConfig, http } from "wagmi";
+import web3AuthContextConfig from "./web3authConfig";
+import { arbitrumSepoliaCustom, RPC_URL } from "./contracts";
+
+const queryClient = new QueryClient();
+
+// Wagmi config with Arbitrum Sepolia
+const wagmiConfig = createConfig({
+  chains: [arbitrumSepoliaCustom],
+  transports: {
+    [arbitrumSepoliaCustom.id]: http(RPC_URL),
+  },
+});
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ""}
-      config={{
-        appearance: {
-          theme: "light",
-          accentColor: "#FF6B9D",
-          logo: "https://your-logo-url.com/logo.png",
-          showWalletLoginFirst: false,
-        },
-        loginMethods: ["email", "wallet", "google"],
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: "users-without-wallets",
-          },
-        },
-        defaultChain: arbitrumSepoliaCustom,
-        supportedChains: [arbitrumSepoliaCustom],
-      }}
-    >
-      {children}
-    </PrivyProvider>
+    <Web3AuthProvider config={web3AuthContextConfig}>
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={wagmiConfig}>
+          {children}
+        </WagmiProvider>
+      </QueryClientProvider>
+    </Web3AuthProvider>
   );
 }

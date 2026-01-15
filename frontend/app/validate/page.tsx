@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertTriangle, User, Loader2 } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertTriangle, User, Loader2, ExternalLink } from "lucide-react";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
 import { useAccount } from "wagmi";
 import { useCommitmentVault } from "@/lib/hooks/useContracts";
@@ -38,6 +38,7 @@ interface PastValidation {
   currencySymbol: string;
   outcome: "approved" | "rejected";
   resolvedAt: string;
+  txHash?: string;
 }
 
 function formatDate(dateString: string) {
@@ -74,6 +75,15 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
   const [actionTxHash, setActionTxHash] = useState<string | null>(null);
   const { approve, reject } = useCommitmentVault();
 
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`validationTxHash:${validation.id}`);
+      if (saved) setActionTxHash(saved);
+    } catch {
+      // ignore
+    }
+  }, [validation.id]);
+
   const handleApprove = async () => {
     setIsApproving(true);
     setError(null);
@@ -81,6 +91,11 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
     try {
       const result = await approve(BigInt(validation.id));
       setActionTxHash(result.txHash);
+      try {
+        window.localStorage.setItem(`validationTxHash:${validation.id}`, result.txHash);
+      } catch {
+        // ignore
+      }
       onAction?.();
     } catch (err: any) {
       setError(err.message || "Failed to approve");
@@ -95,6 +110,11 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
     try {
       const result = await reject(BigInt(validation.id));
       setActionTxHash(result.txHash);
+      try {
+        window.localStorage.setItem(`validationTxHash:${validation.id}`, result.txHash);
+      } catch {
+        // ignore
+      }
       onAction?.();
     } catch (err: any) {
       setError(err.message || "Failed to reject");
@@ -281,6 +301,13 @@ export default function ValidatePage() {
             charity: formatAddr(c.charity),
           });
         } else if (c.status === ContractStatus.Resolved) {
+          let savedTxHash: string | undefined;
+          try {
+            const fromStorage = window.localStorage.getItem(`validationTxHash:${id.toString()}`);
+            if (fromStorage) savedTxHash = fromStorage;
+          } catch {
+            // ignore
+          }
           past.push({
             id: id.toString(),
             commitment: c.description,
@@ -289,6 +316,7 @@ export default function ValidatePage() {
             currencySymbol: getCurrencySymbol(c.token),
             outcome: c.outcome === CommitmentOutcome.Success ? "approved" : "rejected",
             resolvedAt: new Date().toISOString(),
+            txHash: savedTxHash,
           });
         }
       }
@@ -395,6 +423,9 @@ export default function ValidatePage() {
                       Your Decision
                     </th>
                     <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
+                      Tx
+                    </th>
+                    <th className="text-left p-4 font-mono text-xs uppercase tracking-widest font-bold">
                       Date
                     </th>
                   </tr>
@@ -416,6 +447,21 @@ export default function ValidatePage() {
                           )}
                           <span className="text-sm font-bold capitalize">{validation.outcome}</span>
                         </div>
+                      </td>
+                      <td className="p-4">
+                        {validation.txHash ? (
+                          <a
+                            href={getExplorerTxUrl(validation.txHash)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-mono text-xs hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            {formatTxHash(validation.txHash)}
+                          </a>
+                        ) : (
+                          <span className="font-mono text-xs text-[var(--muted)]">—</span>
+                        )}
                       </td>
                       <td className="p-4 font-mono text-sm font-medium">
                         {formatDate(validation.resolvedAt)}

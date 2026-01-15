@@ -20,7 +20,7 @@ import {
   formatTxHash,
 } from "@/lib/contracts";
 
-type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
+type CommitmentStatus = "active" | "expired" | "pending_confirmation" | "pending_validation" | "success" | "failed";
 
 interface DisplayCommitment {
   id: string;
@@ -48,7 +48,16 @@ function mapContractStatus(status: ContractStatus, outcome: CommitmentOutcome): 
   return "active";
 }
 
+function isExpiredCommitment(c: ContractCommitment) {
+  if (c.status !== ContractStatus.Active) return false;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const deadlineSeconds = Number(c.deadline);
+  return nowSeconds > deadlineSeconds;
+}
+
 function mapContractCommitment(id: bigint, c: ContractCommitment): DisplayCommitment {
+  const baseStatus = mapContractStatus(c.status, c.outcome);
+  const status = baseStatus === "active" && isExpiredCommitment(c) ? "expired" : baseStatus;
   return {
     id: id.toString(),
     commitment: c.description,
@@ -57,7 +66,7 @@ function mapContractCommitment(id: bigint, c: ContractCommitment): DisplayCommit
     rawAmount: c.amount,
     currencySymbol: getCurrencySymbol(c.token),
     token: c.token,
-    status: mapContractStatus(c.status, c.outcome),
+    status,
     validator: formatAddress(c.validator),
     charity: formatAddress(c.charity),
     createdAt: new Date().toISOString(),
@@ -71,6 +80,12 @@ const STATUS_CONFIG: Record<CommitmentStatus, { label: string; icon: React.React
     icon: <Flame className="w-4 h-4" />,
     bgColor: "bg-[var(--cyan)]",
     textColor: "text-black",
+  },
+  expired: {
+    label: "Expired",
+    icon: <AlertCircle className="w-4 h-4" />,
+    bgColor: "bg-[var(--danger)]",
+    textColor: "text-white",
   },
   pending_confirmation: {
     label: "Confirm Required",
@@ -125,12 +140,13 @@ function DashboardContent() {
   const { isInitialized, isConnected } = useWeb3Auth();
   const { connect } = useWeb3AuthConnect();
   const { address } = useAccount();
-  const { getUserCommitments, getCommitment } = useCommitmentVault();
+  const { getUserCommitments, getCommitment, resolveExpired } = useCommitmentVault();
 
   const [commitments, setCommitments] = useState<DisplayCommitment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [createdTxHash, setCreatedTxHash] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   // Check for commitment creation success from URL params
   useEffect(() => {
@@ -176,11 +192,21 @@ function DashboardContent() {
   };
 
   const activeCommitments = commitments.filter(
-    (c) => c.status === "active" || c.status === "pending_confirmation" || c.status === "pending_validation"
+    (c) => c.status === "active" || c.status === "expired" || c.status === "pending_confirmation" || c.status === "pending_validation"
   );
   const pastCommitments = commitments.filter(
     (c) => c.status === "success" || c.status === "failed"
   );
+
+  const handleResolveExpired = async (id: string) => {
+    setResolvingId(id);
+    try {
+      await resolveExpired(BigInt(id));
+      await loadCommitments();
+    } finally {
+      setResolvingId(null);
+    }
+  };
 
   // Calculate total staked amounts by currency
   const totalETH = activeCommitments
@@ -324,7 +350,7 @@ function DashboardContent() {
                 href="/commit"
                 className="brutal-btn bg-[var(--pink)] px-6 py-3 inline-flex items-center gap-2 font-bold"
               >
-                Create your first commitment
+                Create commitment
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -370,6 +396,22 @@ function DashboardContent() {
                           <p className="font-mono font-medium text-sm">{commitment.validator}</p>
                         </div>
                       </div>
+
+                      {commitment.status === "expired" && (
+                        <div className="mt-4">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleResolveExpired(commitment.id);
+                            }}
+                            disabled={resolvingId === commitment.id}
+                            className="brutal-btn bg-black text-white px-4 py-2 font-bold disabled:opacity-50"
+                          >
+                            {resolvingId === commitment.id ? "Resolving..." : "Resolve Expired"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </Link>
                 );

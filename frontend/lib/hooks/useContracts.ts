@@ -60,6 +60,34 @@ export function useCommitmentVault() {
     return {};
   }, [publicClient]);
 
+  const getGasOverrides = useCallback(
+    async (
+      functionName:
+        | "createCommitmentToken"
+        | "createCommitmentETH"
+        | "confirmCompletion"
+        | "approve"
+        | "reject"
+        | "resolveExpired",
+      args: readonly unknown[],
+      account: `0x${string}`,
+      value?: bigint
+    ) => {
+      const gas = await publicClient.estimateContractGas({
+        ...commitmentVaultConfig,
+        functionName,
+        args,
+        account,
+        value,
+      });
+
+      const gasMultiplier = BigInt(120);
+      const gasDivisor = BigInt(100);
+      return { gas: (gas * gasMultiplier) / gasDivisor };
+    },
+    [publicClient]
+  );
+
   const getActiveAccount = useCallback((): `0x${string}` => {
     if (!isConnected || !address) {
       throw new Error("No wallet connected");
@@ -152,6 +180,11 @@ export function useCommitmentVault() {
         const account = getActiveAccount();
 
         const feeOverrides = await getFeeOverrides();
+        const gasOverrides = await getGasOverrides(
+          "createCommitmentToken",
+          [validator, charity, token, amount, deadline, description],
+          account
+        );
 
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
@@ -160,6 +193,7 @@ export function useCommitmentVault() {
           chain: arbitrumSepoliaCustom,
           account,
           ...feeOverrides,
+          ...gasOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -173,7 +207,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter, getFeeOverrides]
+    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter, getFeeOverrides, getGasOverrides]
   );
 
   const createCommitmentETH = useCallback(
@@ -191,6 +225,12 @@ export function useCommitmentVault() {
         const account = getActiveAccount();
 
         const feeOverrides = await getFeeOverrides();
+        const gasOverrides = await getGasOverrides(
+          "createCommitmentETH",
+          [validator, charity, deadline, description],
+          account,
+          amount
+        );
 
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
@@ -200,6 +240,7 @@ export function useCommitmentVault() {
           chain: arbitrumSepoliaCustom,
           account,
           ...feeOverrides,
+          ...gasOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -213,7 +254,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter, getFeeOverrides]
+    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter, getFeeOverrides, getGasOverrides]
   );
 
   const confirmCompletion = useCallback(
@@ -226,6 +267,11 @@ export function useCommitmentVault() {
         const account = getActiveAccount();
 
         const feeOverrides = await getFeeOverrides();
+        const gasOverrides = await getGasOverrides(
+          "confirmCompletion",
+          [commitmentId],
+          account
+        );
 
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
@@ -234,6 +280,7 @@ export function useCommitmentVault() {
           chain: arbitrumSepoliaCustom,
           account,
           ...feeOverrides,
+          ...gasOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -245,7 +292,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides, getGasOverrides]
   );
 
   const approve = useCallback(
@@ -258,6 +305,11 @@ export function useCommitmentVault() {
         const account = getActiveAccount();
 
         const feeOverrides = await getFeeOverrides();
+        const gasOverrides = await getGasOverrides(
+          "approve",
+          [commitmentId],
+          account
+        );
 
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
@@ -266,6 +318,7 @@ export function useCommitmentVault() {
           chain: arbitrumSepoliaCustom,
           account,
           ...feeOverrides,
+          ...gasOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -277,7 +330,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides, getGasOverrides]
   );
 
   const reject = useCallback(
@@ -290,6 +343,11 @@ export function useCommitmentVault() {
         const account = getActiveAccount();
 
         const feeOverrides = await getFeeOverrides();
+        const gasOverrides = await getGasOverrides(
+          "reject",
+          [commitmentId],
+          account
+        );
 
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
@@ -298,6 +356,7 @@ export function useCommitmentVault() {
           chain: arbitrumSepoliaCustom,
           account,
           ...feeOverrides,
+          ...gasOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -309,7 +368,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides, getGasOverrides]
   );
 
   const resolveExpired = useCallback(
@@ -321,6 +380,11 @@ export function useCommitmentVault() {
         const account = getActiveAccount();
 
         const feeOverrides = await getFeeOverrides();
+        const gasOverrides = await getGasOverrides(
+          "resolveExpired",
+          [commitmentId],
+          account
+        );
 
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
@@ -329,6 +393,7 @@ export function useCommitmentVault() {
           chain: arbitrumSepoliaCustom,
           account,
           ...feeOverrides,
+          ...gasOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -340,7 +405,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides, getGasOverrides]
   );
 
   return {

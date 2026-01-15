@@ -49,9 +49,9 @@ Validator always wins. Silence counts as failure.
 
 ## Tech Stack
 
-- **Frontend**: Next.js
-- **Wallet & Auth**: Privy (social login) + RainbowKit
-- **Smart Contracts**: Solidity (single escrow contract)
+- **Frontend**: Next.js (App Router) + TypeScript + Tailwind
+- **Wallet & Auth**: Web3Auth (social login) + wagmi + viem
+- **Smart Contracts**: Solidity (CommitmentVault + MockUSDC)
 - **Time Logic**: `block.timestamp`
 - **Assets**:
   - Native ETH
@@ -63,16 +63,20 @@ No oracles. No automation services. No AI.
 
 ## Supported Chains
 
-- **Arbitrum Sepolia**
-- **Mantle Testnet**
+- **Arbitrum Sepolia (Chain ID: 421614)**
 
-Same codebase, same UX, separate deployments.
+## Deployed Contracts (Arbitrum Sepolia)
+
+| Contract | Address | Explorer |
+|---|---|---|
+| CommitmentVault | `0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d` | https://sepolia.arbiscan.io/address/0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d |
+| MockUSDC | `0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0` | https://sepolia.arbiscan.io/address/0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0 |
 
 ---
 
 ## Demo Instructions (Hackathon-Friendly)
 
-1. Connect using social login (email / wallet via Privy)
+1. Connect using social login (email) via Web3Auth
 2. Claim mockUSDC from the in-app faucet (optional)
 3. Create a commitment with a short deadline
 4. Stake ETH or mockUSDC
@@ -93,6 +97,34 @@ To stay focused and shippable within a hackathon window, the following are **int
 - ❌ Reputation systems or social graphs
 - ❌ DAO governance or admin controls
 - ❌ Automated reminders or off-chain cron jobs
+
+---
+
+## Local Development
+
+1. Install dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+2. Configure env
+
+Create `frontend/.env.local` (see `frontend/.env.local.example`). Minimum required:
+
+- `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID`
+- `NEXT_PUBLIC_VAULT_ADDRESS`
+- `NEXT_PUBLIC_MOCKUSDC_ADDRESS`
+- `NEXT_PUBLIC_CHAIN_ID=421614`
+- `NEXT_PUBLIC_ARBITRUM_RPC_URL`
+
+3. Run
+
+```bash
+cd frontend
+npm run dev
+```
 
 This is a **minimal, opinionated MVP** — not a productivity platform.
 

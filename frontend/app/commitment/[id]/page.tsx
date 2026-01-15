@@ -391,7 +391,7 @@ export default function CommitmentDetailPage() {
                       className="flex items-center gap-1 text-xs font-mono text-green-600 hover:underline mt-1"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      View on Arbiscan: {formatTxHash(confirmTxHash)}
+                      View on Mantlescan: {formatTxHash(confirmTxHash)}
                     </a>
                   </div>
                 )}
@@ -425,7 +425,7 @@ export default function CommitmentDetailPage() {
                           className="flex items-center gap-1 text-xs font-mono hover:underline mt-1"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          View on Arbiscan: {formatTxHash(confirmTxHash)}
+                          View on Mantlescan: {formatTxHash(confirmTxHash)}
                         </a>
                       </div>
                     )}

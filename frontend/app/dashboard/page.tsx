@@ -269,7 +269,7 @@ function DashboardContent() {
                     className="flex items-center gap-1 text-sm font-mono text-green-600 hover:underline"
                   >
                     <ExternalLink className="w-3 h-3" />
-                    View on Arbiscan: {formatTxHash(createdTxHash)}
+                    View on Mantlescan: {formatTxHash(createdTxHash)}
                   </a>
                 </div>
               </div>

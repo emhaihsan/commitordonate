@@ -19,7 +19,7 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "Commit or Donate - Discipline with Consequences",
   description: "A personal commitment app where failure has real consequences. If you break your promise, your money gets donated to charity. No excuses. No retries. No mercy.",
-  keywords: ["commitment", "discipline", "accountability", "web3", "blockchain", "arbitrum", "donation", "charity"],
+  keywords: ["commitment", "discipline", "accountability", "web3", "blockchain", "mantle", "donation", "charity"],
   authors: [{ name: "Commit or Donate Team" }],
   openGraph: {
     title: "Commit or Donate - Discipline with Consequences",

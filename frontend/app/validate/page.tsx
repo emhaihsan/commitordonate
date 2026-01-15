@@ -246,7 +246,7 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
               className="flex items-center gap-1 text-xs font-mono text-green-600 hover:underline mt-1"
             >
               <Clock className="w-3 h-3" />
-              View on Arbiscan: {formatTxHash(actionTxHash)}
+              View on Mantlescan: {formatTxHash(actionTxHash)}
             </a>
           </div>
         )}

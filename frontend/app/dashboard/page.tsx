@@ -10,7 +10,10 @@ import {
   CommitmentOutcome,
   type Commitment as ContractCommitment,
   formatAddress,
-  formatAmount,
+  formatAmountByToken,
+  getCurrencySymbol,
+  isETH,
+  MOCKUSDC_ADDRESS,
 } from "@/lib/contracts";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
@@ -19,7 +22,10 @@ interface DisplayCommitment {
   id: string;
   commitment: string;
   deadline: string;
-  stakeAmount: number;
+  stakeAmount: string;
+  rawAmount: bigint;
+  currencySymbol: string;
+  token: `0x${string}`;
   status: CommitmentStatus;
   validator: string;
   charity: string;
@@ -43,7 +49,10 @@ function mapContractCommitment(id: bigint, c: ContractCommitment): DisplayCommit
     id: id.toString(),
     commitment: c.description,
     deadline: new Date(Number(c.deadline) * 1000).toISOString(),
-    stakeAmount: Number(c.amount) / 1e6,
+    stakeAmount: formatAmountByToken(c.amount, c.token),
+    rawAmount: c.amount,
+    currencySymbol: getCurrencySymbol(c.token),
+    token: c.token,
     status: mapContractStatus(c.status, c.outcome),
     validator: formatAddress(c.validator),
     charity: formatAddress(c.charity),
@@ -153,7 +162,18 @@ export default function DashboardPage() {
     (c) => c.status === "success" || c.status === "failed"
   );
 
-  const totalStaked = activeCommitments.reduce((sum, c) => sum + c.stakeAmount, 0);
+  // Calculate total staked amounts by currency
+  const totalETH = activeCommitments
+    .filter((c) => isETH(c.token))
+    .reduce((sum, c) => sum + c.rawAmount, BigInt(0));
+  const totalUSDC = activeCommitments
+    .filter((c) => !isETH(c.token))
+    .reduce((sum, c) => sum + c.rawAmount, BigInt(0));
+
+  const ethDisplay = totalETH > BigInt(0) ? `Ξ${formatAmountByToken(totalETH, "0x0000000000000000000000000000000000000000")}` : "";
+  const usdcDisplay = totalUSDC > BigInt(0) ? `$${formatAmountByToken(totalUSDC, MOCKUSDC_ADDRESS)}` : "";
+  const stakeDisplay = [ethDisplay, usdcDisplay].filter(Boolean).join(" / ") || "0";
+
   const successCount = commitments.filter((c) => c.status === "success").length;
   const failedCount = commitments.filter((c) => c.status === "failed").length;
 
@@ -219,7 +239,7 @@ export default function DashboardPage() {
             <p className="font-mono text-xs uppercase tracking-widest mb-2 font-bold">
               💰 At Stake
             </p>
-            <p className="text-4xl font-black font-mono">${totalStaked}</p>
+            <p className="text-4xl font-black font-mono">{stakeDisplay}</p>
           </div>
           <div className="brutal-card p-6 bg-[var(--cyan)]">
             <p className="font-mono text-xs uppercase tracking-widest mb-2 font-bold">
@@ -286,7 +306,7 @@ export default function DashboardPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t-[3px] border-black">
                         <div>
                           <p className="font-mono text-xs text-[var(--muted)] mb-1 font-bold">STAKE</p>
-                          <p className="font-mono font-black text-lg">${commitment.stakeAmount}</p>
+                          <p className="font-mono font-black text-lg">{commitment.currencySymbol}{commitment.stakeAmount}</p>
                         </div>
                         <div>
                           <p className="font-mono text-xs text-[var(--muted)] mb-1 font-bold">DEADLINE</p>
@@ -352,7 +372,7 @@ export default function DashboardPage() {
                             {commitment.commitment}
                           </Link>
                         </td>
-                        <td className="p-4 font-mono font-bold">${commitment.stakeAmount}</td>
+                        <td className="p-4 font-mono font-bold">{commitment.currencySymbol}{commitment.stakeAmount}</td>
                         <td className="p-4">
                           <div className={`brutal-btn inline-flex px-3 py-1 items-center gap-2 ${statusConfig.bgColor} ${statusConfig.textColor}`}>
                             {statusConfig.icon}

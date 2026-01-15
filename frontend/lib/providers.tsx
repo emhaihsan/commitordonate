@@ -1,13 +1,7 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
-import { arbitrumSepolia } from "viem/chains";
-import { addRpcUrlOverrideToChain } from "@privy-io/chains";
-
-const RPC_URL = process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
-
-// Override Arbitrum Sepolia RPC with custom Alchemy endpoint
-const arbitrumSepoliaWithCustomRpc = addRpcUrlOverrideToChain(arbitrumSepolia, RPC_URL);
+import { arbitrumSepoliaCustom } from "./contracts";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -26,8 +20,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             createOnLogin: "users-without-wallets",
           },
         },
-        defaultChain: arbitrumSepoliaWithCustomRpc,
-        supportedChains: [arbitrumSepoliaWithCustomRpc],
+        defaultChain: arbitrumSepoliaCustom,
+        supportedChains: [arbitrumSepoliaCustom],
       }}
     >
       {children}

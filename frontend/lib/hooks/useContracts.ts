@@ -10,7 +10,6 @@ import {
   type PublicClient,
   type WalletClient,
 } from "viem";
-import { arbitrumSepolia } from "viem/chains";
 import {
   commitmentVaultConfig,
   mockUsdcConfig,
@@ -19,13 +18,13 @@ import {
   type Commitment,
   CommitmentStatus,
   CommitmentOutcome,
+  arbitrumSepoliaCustom,
+  RPC_URL,
 } from "../contracts";
-
-const RPC_URL = process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
 
 export function usePublicClient(): PublicClient {
   return createPublicClient({
-    chain: arbitrumSepolia,
+    chain: arbitrumSepoliaCustom,
     transport: http(RPC_URL),
   });
 }
@@ -46,16 +45,26 @@ export function useCommitmentVault() {
   const getWalletClient = useCallback(async (): Promise<WalletClient | null> => {
     if (!authenticated || wallets.length === 0) return null;
     const wallet = wallets[0];
-    await wallet.switchChain(arbitrumSepolia.id);
+    await wallet.switchChain(arbitrumSepoliaCustom.id);
     const provider = await wallet.getEthereumProvider();
 
-    // Use custom transport with the provider, which will use Privy's configured RPC
+    // Use custom transport for signing, but with our custom chain RPC
     return createWalletClient({
-      chain: arbitrumSepolia,
+      chain: arbitrumSepoliaCustom,
       transport: custom(provider),
       account: wallet.address as `0x${string}`,
     });
   }, [authenticated, wallets]);
+
+  // Helper to send transaction via our RPC after signing with Privy
+  const sendViaOurRpc = useCallback(async (
+    signedTx: `0x${string}`
+  ): Promise<`0x${string}`> => {
+    const hash = await publicClient.sendRawTransaction({
+      serializedTransaction: signedTx,
+    });
+    return hash;
+  }, [publicClient]);
 
   const getCommitment = useCallback(
     async (commitmentId: bigint): Promise<Commitment | null> => {
@@ -140,7 +149,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "createCommitmentToken",
           args: [validator, charity, token, amount, deadline, description],
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -177,7 +186,7 @@ export function useCommitmentVault() {
           functionName: "createCommitmentETH",
           args: [validator, charity, deadline, description],
           value: amount,
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -199,6 +208,7 @@ export function useCommitmentVault() {
     async (commitmentId: bigint): Promise<boolean> => {
       setIsLoading(true);
       try {
+        // Must be called by commitment creator - use user wallet
         const walletClient = await getWalletClient();
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
@@ -207,7 +217,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "confirmCompletion",
           args: [commitmentId],
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -227,6 +237,7 @@ export function useCommitmentVault() {
     async (commitmentId: bigint): Promise<boolean> => {
       setIsLoading(true);
       try {
+        // Must be called by validator - use user wallet
         const walletClient = await getWalletClient();
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
@@ -235,7 +246,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "approve",
           args: [commitmentId],
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -255,6 +266,7 @@ export function useCommitmentVault() {
     async (commitmentId: bigint): Promise<boolean> => {
       setIsLoading(true);
       try {
+        // Must be called by validator - use user wallet
         const walletClient = await getWalletClient();
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
@@ -263,7 +275,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "reject",
           args: [commitmentId],
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -291,7 +303,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "resolveExpired",
           args: [commitmentId],
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -338,10 +350,10 @@ export function useMockUSDC() {
   const getWalletClient = useCallback(async (): Promise<WalletClient | null> => {
     if (!authenticated || wallets.length === 0) return null;
     const wallet = wallets[0];
-    await wallet.switchChain(arbitrumSepolia.id);
+    await wallet.switchChain(arbitrumSepoliaCustom.id);
     const provider = await wallet.getEthereumProvider();
     return createWalletClient({
-      chain: arbitrumSepolia,
+      chain: arbitrumSepoliaCustom,
       transport: custom(provider),
       account: wallet.address as `0x${string}`,
     });
@@ -393,7 +405,7 @@ export function useMockUSDC() {
           ...mockUsdcConfig,
           functionName: "approve",
           args: [spender, amount],
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 
@@ -436,7 +448,7 @@ export function useMockUSDC() {
         const hash = await walletClient.writeContract({
           ...mockUsdcConfig,
           functionName: "faucet",
-          chain: arbitrumSepolia,
+          chain: arbitrumSepoliaCustom,
           account,
         });
 

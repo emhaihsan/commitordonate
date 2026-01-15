@@ -6,12 +6,13 @@ import { AlertTriangle, ArrowRight, Info, Loader2 } from "lucide-react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useCommitmentVault, useMockUSDC } from "@/lib/hooks/useContracts";
 import { CHARITIES, VAULT_ADDRESS, parseAmount, formatAmount } from "@/lib/contracts";
+import { parseEther, formatEther } from "viem";
 
 export default function CommitPage() {
   const router = useRouter();
   const { ready, authenticated, login } = usePrivy();
   const { wallets } = useWallets();
-  const { createCommitmentToken, isLoading: isCreating } = useCommitmentVault();
+  const { createCommitmentToken, createCommitmentETH, isLoading: isCreating } = useCommitmentVault();
   const { getBalance, getAllowance, approveToken, faucet, isLoading: isTokenLoading } = useMockUSDC();
 
   const [step, setStep] = useState(1);
@@ -23,6 +24,19 @@ export default function CommitPage() {
     charityId: "",
     customCharityAddress: "",
   });
+  const [stakeType, setStakeType] = useState<"USDC" | "ETH">("USDC");
+
+  // Application fee: 0.1%
+  const APP_FEE_PERCENT = 0.1;
+  const calculateFee = (amount: string) => {
+    const num = parseFloat(amount) || 0;
+    return (num * APP_FEE_PERCENT / 100).toFixed(stakeType === "USDC" ? 2 : 6);
+  };
+  const calculateNetReturn = (amount: string) => {
+    const num = parseFloat(amount) || 0;
+    const fee = num * APP_FEE_PERCENT / 100;
+    return (num - fee).toFixed(stakeType === "USDC" ? 2 : 6);
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [balance, setBalance] = useState<bigint>(BigInt(0));
   const [needsApproval, setNeedsApproval] = useState(true);
@@ -101,29 +115,10 @@ export default function CommitPage() {
     setError(null);
 
     try {
-      // Validate inputs
-      const amount = parseAmount(formData.stakeAmount);
-      if (amount <= BigInt(0)) {
-        throw new Error("Stake amount must be greater than 0");
-      }
-
-      // Check balance
-      console.log("Balance check:", { balance: balance.toString(), amount: amount.toString(), formatted: formatAmount(balance) });
-      if (balance < amount) {
-        throw new Error(`Insufficient balance. You have $${formatAmount(balance)} but need $${formData.stakeAmount}`);
-      }
-
-      // Check allowance
+      // Validate addresses
       if (!walletAddress) {
         throw new Error("Wallet not connected");
       }
-      const allowance = await getAllowance(walletAddress, VAULT_ADDRESS);
-      console.log("Allowance check:", { allowance: allowance.toString(), amount: amount.toString(), vaultAddress: VAULT_ADDRESS });
-      if (allowance < amount) {
-        throw new Error(`Insufficient allowance. Current: $${formatAmount(allowance)}, Required: $${formData.stakeAmount}. Please approve USDC first.`);
-      }
-
-      // Validate addresses
       if (!formData.validatorAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
         throw new Error("Invalid validator address");
       }
@@ -143,14 +138,47 @@ export default function CommitPage() {
         throw new Error("Deadline must be in the future");
       }
 
-      const commitmentId = await createCommitmentToken(
-        formData.validatorAddress as `0x${string}`,
-        charityAddress,
-        process.env.NEXT_PUBLIC_MOCKUSDC_ADDRESS as `0x${string}`,
-        amount,
-        deadlineTimestamp,
-        formData.commitment
-      );
+      let commitmentId: bigint | null;
+
+      if (stakeType === "ETH") {
+        // ETH staking
+        const ethAmount = parseEther(formData.stakeAmount);
+        if (ethAmount <= BigInt(0)) {
+          throw new Error("Stake amount must be greater than 0");
+        }
+
+        commitmentId = await createCommitmentETH(
+          formData.validatorAddress as `0x${string}`,
+          charityAddress,
+          deadlineTimestamp,
+          formData.commitment,
+          ethAmount
+        );
+      } else {
+        // USDC staking
+        const amount = parseAmount(formData.stakeAmount);
+        if (amount <= BigInt(0)) {
+          throw new Error("Stake amount must be greater than 0");
+        }
+
+        if (balance < amount) {
+          throw new Error(`Insufficient balance. You have $${formatAmount(balance)} but need $${formData.stakeAmount}`);
+        }
+
+        const allowance = await getAllowance(walletAddress, VAULT_ADDRESS);
+        if (allowance < amount) {
+          throw new Error(`Insufficient allowance. Please approve USDC first.`);
+        }
+
+        commitmentId = await createCommitmentToken(
+          formData.validatorAddress as `0x${string}`,
+          charityAddress,
+          process.env.NEXT_PUBLIC_MOCKUSDC_ADDRESS as `0x${string}`,
+          amount,
+          deadlineTimestamp,
+          formData.commitment
+        );
+      }
 
       router.push(`/dashboard?created=true&id=${commitmentId}`);
     } catch (err: any) {
@@ -287,33 +315,65 @@ export default function CommitPage() {
               </div>
 
               <div className="space-y-6">
-                {/* Balance Card */}
-                <div className="brutal-card p-4 bg-[var(--mint)] flex items-center justify-between">
-                  <div>
-                    <p className="font-mono text-xs uppercase tracking-widest font-bold">Your USDC Balance</p>
-                    <p className="font-mono text-2xl font-black">${formatAmount(balance)}</p>
+                {/* Stake Type Toggle */}
+                <div className="brutal-card p-4 bg-white">
+                  <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
+                    💱 Stake Currency
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setStakeType("USDC")}
+                      className={`brutal-btn flex-1 py-3 font-bold ${
+                        stakeType === "USDC" ? "bg-[var(--mint)]" : "bg-gray-100"
+                      }`}
+                    >
+                      💵 USDC
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStakeType("ETH")}
+                      className={`brutal-btn flex-1 py-3 font-bold ${
+                        stakeType === "ETH" ? "bg-[var(--cyan)]" : "bg-gray-100"
+                      }`}
+                    >
+                      ⟠ ETH
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleClaimFaucet}
-                    disabled={isClaimingFaucet}
-                    className="brutal-btn bg-[var(--cyan)] px-4 py-2 font-bold text-sm disabled:opacity-50"
-                  >
-                    {isClaimingFaucet ? "Claiming..." : "🚰 Get Test USDC"}
-                  </button>
                 </div>
+
+                {/* Balance Card - Only show for USDC */}
+                {stakeType === "USDC" && (
+                  <div className="brutal-card p-4 bg-[var(--mint)] flex items-center justify-between">
+                    <div>
+                      <p className="font-mono text-xs uppercase tracking-widest font-bold">Your USDC Balance</p>
+                      <p className="font-mono text-2xl font-black">${formatAmount(balance)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClaimFaucet}
+                      disabled={isClaimingFaucet}
+                      className="brutal-btn bg-[var(--cyan)] px-4 py-2 font-bold text-sm disabled:opacity-50"
+                    >
+                      {isClaimingFaucet ? "Claiming..." : "🚰 Get Test USDC"}
+                    </button>
+                  </div>
+                )}
 
                 <div className="brutal-card p-6 bg-[var(--yellow)]">
                   <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
-                    💰 Stake Amount (USDC)
+                    💰 Stake Amount ({stakeType})
                   </label>
                   <div className="relative">
-                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 font-bold text-lg">$</span>
+                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 font-bold text-lg">
+                      {stakeType === "USDC" ? "$" : "Ξ"}
+                    </span>
                     <input
                       type="number"
+                      step={stakeType === "ETH" ? "0.001" : "1"}
                       value={formData.stakeAmount}
                       onChange={(e) => setFormData({ ...formData, stakeAmount: e.target.value })}
-                      placeholder="100"
+                      placeholder={stakeType === "USDC" ? "100" : "0.01"}
                       className="brutal-input w-full pl-10 text-2xl font-black"
                     />
                   </div>
@@ -321,6 +381,27 @@ export default function CommitPage() {
                     💡 Choose an amount that hurts to lose. That&apos;s the point.
                   </p>
                 </div>
+
+                {/* Fee Info Card */}
+                {formData.stakeAmount && parseFloat(formData.stakeAmount) > 0 && (
+                  <div className="brutal-card p-4 bg-[var(--lavender)]">
+                    <p className="font-mono text-xs uppercase tracking-widest font-bold mb-2">📊 Fee Breakdown</p>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Stake Amount:</span>
+                        <span className="font-bold">{stakeType === "USDC" ? "$" : "Ξ"}{formData.stakeAmount}</span>
+                      </div>
+                      <div className="flex justify-between text-[var(--muted)]">
+                        <span>Platform Fee (0.1%):</span>
+                        <span>-{stakeType === "USDC" ? "$" : "Ξ"}{calculateFee(formData.stakeAmount)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t border-black pt-1 mt-1">
+                        <span>You receive if successful:</span>
+                        <span className="text-green-600">{stakeType === "USDC" ? "$" : "Ξ"}{calculateNetReturn(formData.stakeAmount)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="brutal-card p-6 bg-white">
                   <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
@@ -447,7 +528,7 @@ export default function CommitPage() {
               <div />
             )}
 
-            {step === 3 && needsApproval ? (
+            {step === 3 && stakeType === "USDC" && needsApproval ? (
               <button
                 type="button"
                 onClick={handleApprove}

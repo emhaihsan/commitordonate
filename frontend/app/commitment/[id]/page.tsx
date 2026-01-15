@@ -21,6 +21,9 @@ import {
   CommitmentOutcome,
   type Commitment as ContractCommitment,
   formatAddress as formatAddr,
+  formatAmountByToken,
+  getCurrencySymbol,
+  isETH,
 } from "@/lib/contracts";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
@@ -30,7 +33,9 @@ interface CommitmentDetail {
   commitment: string;
   description?: string;
   deadline: string;
-  stakeAmount: number;
+  stakeAmount: string;
+  currencySymbol: string;
+  token: `0x${string}`;
   status: CommitmentStatus;
   validator: string;
   charity: string;
@@ -134,7 +139,9 @@ export default function CommitmentDetailPage() {
           id,
           commitment: c.description,
           deadline: new Date(Number(c.deadline) * 1000).toISOString(),
-          stakeAmount: Number(c.amount) / 1e6,
+          stakeAmount: formatAmountByToken(c.amount, c.token),
+          currencySymbol: getCurrencySymbol(c.token),
+          token: c.token,
           status: mapContractStatus(c.status, c.outcome),
           validator: c.validator,
           charity: formatAddr(c.charity),
@@ -198,7 +205,7 @@ export default function CommitmentDetailPage() {
     // Created
     steps.push({
       title: "Commitment Created",
-      description: `$${commitment.stakeAmount} locked in escrow`,
+      description: `${commitment.currencySymbol}${commitment.stakeAmount} locked in escrow`,
       timestamp: commitment.createdAt,
       status: "completed" as const,
     });
@@ -269,7 +276,7 @@ export default function CommitmentDetailPage() {
       });
       steps.push({
         title: "Funds Returned",
-        description: `$${commitment.stakeAmount} returned to your wallet`,
+        description: `${commitment.currencySymbol}${commitment.stakeAmount} returned to your wallet`,
         timestamp: commitment.resolvedAt,
         status: "completed" as const,
         isLast: true,
@@ -288,7 +295,7 @@ export default function CommitmentDetailPage() {
       });
       steps.push({
         title: "Funds Donated",
-        description: `$${commitment.stakeAmount} sent to ${commitment.charity}`,
+        description: `${commitment.currencySymbol}${commitment.stakeAmount} sent to ${commitment.charity}`,
         timestamp: commitment.resolvedAt,
         status: "completed" as const,
         isLast: true,
@@ -382,7 +389,7 @@ export default function CommitmentDetailPage() {
                   <div>
                     <h2 className="font-black text-xl mb-2">💀 Commitment Failed</h2>
                     <p className="text-sm mb-4">
-                      Your ${commitment.stakeAmount} has been donated to {commitment.charity}.
+                      Your {commitment.currencySymbol}{commitment.stakeAmount} has been donated to {commitment.charity}.
                     </p>
                     {commitment.donationTxHash && (
                       <a
@@ -408,7 +415,7 @@ export default function CommitmentDetailPage() {
                   <div>
                     <h2 className="font-black text-xl mb-2">🏆 Commitment Successful!</h2>
                     <p className="text-sm">
-                      Your ${commitment.stakeAmount} has been returned to your wallet. 
+                      Your {commitment.currencySymbol}{commitment.stakeAmount} has been returned to your wallet. 
                       <span className="font-bold"> You kept your promise.</span>
                     </p>
                   </div>
@@ -442,7 +449,7 @@ export default function CommitmentDetailPage() {
               <div className="space-y-4">
                 <div className="brutal-card p-4 bg-[var(--yellow)]">
                   <p className="font-mono text-xs mb-1 font-bold">💰 STAKE AMOUNT</p>
-                  <p className="font-mono text-3xl font-black">${commitment.stakeAmount}</p>
+                  <p className="font-mono text-3xl font-black">{commitment.currencySymbol}{commitment.stakeAmount}</p>
                 </div>
                 <div className="brutal-card p-4 bg-white">
                   <p className="font-mono text-xs mb-1 font-bold">⏰ DEADLINE</p>

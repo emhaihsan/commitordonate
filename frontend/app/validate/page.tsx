@@ -10,7 +10,8 @@ import {
   CommitmentOutcome,
   type Commitment as ContractCommitment,
   formatAddress as formatAddr,
-  formatAmount,
+  formatAmountByToken,
+  getCurrencySymbol,
 } from "@/lib/contracts";
 
 interface PendingValidation {
@@ -18,7 +19,8 @@ interface PendingValidation {
   commitment: string;
   committer: string;
   committerAddress: string;
-  stakeAmount: number;
+  stakeAmount: string;
+  currencySymbol: string;
   deadline: string;
   confirmedAt: string;
   expiresAt: string;
@@ -29,7 +31,8 @@ interface PastValidation {
   id: string;
   commitment: string;
   committer: string;
-  stakeAmount: number;
+  stakeAmount: string;
+  currencySymbol: string;
   outcome: "approved" | "rejected";
   resolvedAt: string;
 }
@@ -122,7 +125,7 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="brutal-card p-4 bg-[var(--yellow)]">
             <p className="font-mono text-xs mb-1 font-bold">💰 STAKE</p>
-            <p className="font-mono font-black text-2xl">${validation.stakeAmount}</p>
+            <p className="font-mono font-black text-2xl">{validation.currencySymbol}{validation.stakeAmount}</p>
           </div>
           <div className="brutal-card p-4 bg-white">
             <p className="font-mono text-xs mb-1 font-bold">✅ CONFIRMED</p>
@@ -140,7 +143,7 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <p className="text-sm">
               <strong>Your decision is final.</strong> If you approve, the committer 
-              gets their ${validation.stakeAmount} back. If you reject or do nothing, the money goes to {validation.charity}.
+              gets their {validation.currencySymbol}{validation.stakeAmount} back. If you reject or do nothing, the money goes to {validation.charity}.
             </p>
           </div>
         </div>
@@ -180,7 +183,7 @@ function ValidationCard({ validation, onAction }: { validation: PendingValidatio
         ) : (
           <div className="brutal-card p-5 bg-[var(--danger)]/10 border-[var(--danger)]">
             <p className="text-sm mb-4 font-medium">
-              ⚠️ Are you sure you want to reject? This will donate ${validation.stakeAmount} to {validation.charity}. 
+              ⚠️ Are you sure you want to reject? This will donate {validation.currencySymbol}{validation.stakeAmount} to {validation.charity}. 
               <strong> This action cannot be undone.</strong>
             </p>
             <div className="flex gap-4">
@@ -242,7 +245,8 @@ export default function ValidatePage() {
             commitment: c.description,
             committer: formatAddr(c.creator),
             committerAddress: c.creator,
-            stakeAmount: Number(c.amount) / 1e6,
+            stakeAmount: formatAmountByToken(c.amount, c.token),
+            currencySymbol: getCurrencySymbol(c.token),
             deadline: new Date(Number(c.deadline) * 1000).toISOString(),
             confirmedAt: new Date(Number(c.confirmationTime) * 1000).toISOString(),
             expiresAt: new Date(Number(c.validatorDeadline) * 1000).toISOString(),
@@ -253,7 +257,8 @@ export default function ValidatePage() {
             id: id.toString(),
             commitment: c.description,
             committer: formatAddr(c.creator),
-            stakeAmount: Number(c.amount) / 1e6,
+            stakeAmount: formatAmountByToken(c.amount, c.token),
+            currencySymbol: getCurrencySymbol(c.token),
             outcome: c.outcome === CommitmentOutcome.Success ? "approved" : "rejected",
             resolvedAt: new Date().toISOString(),
           });
@@ -371,7 +376,7 @@ export default function ValidatePage() {
                     <tr key={validation.id} className="border-b-[2px] border-black last:border-b-0 hover:bg-[var(--background)]">
                       <td className="p-4 font-bold">{validation.commitment}</td>
                       <td className="p-4 font-medium">{validation.committer}</td>
-                      <td className="p-4 font-mono font-bold">${validation.stakeAmount}</td>
+                      <td className="p-4 font-mono font-bold">{validation.currencySymbol}{validation.stakeAmount}</td>
                       <td className="p-4">
                         <div className={`brutal-btn inline-flex px-3 py-1 items-center gap-2 ${
                           validation.outcome === "approved" ? "bg-[var(--mint)]" : "bg-[var(--danger)] text-white"

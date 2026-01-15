@@ -1,9 +1,35 @@
-import { arbitrumSepolia } from "viem/chains";
+import { defineChain } from "viem";
 import CommitmentVaultABI from "./abis/CommitmentVault.json";
 import MockUSDCABI from "./abis/MockUSDC.json";
 
 export const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS as `0x${string}`;
 export const MOCKUSDC_ADDRESS = process.env.NEXT_PUBLIC_MOCKUSDC_ADDRESS as `0x${string}`;
+
+// CRITICAL: Always use Infura RPC, NEVER default public RPC
+export const RPC_URL = process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL || "https://arbitrum-sepolia.infura.io/v3/7e66544f0bb047c0aa8db93192af56e5";
+
+// Custom Arbitrum Sepolia chain with OUR RPC URL - do NOT import from viem/chains
+export const arbitrumSepoliaCustom = defineChain({
+  id: 421614,
+  name: "Arbitrum Sepolia",
+  nativeCurrency: {
+    name: "Arbitrum Sepolia Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: [RPC_URL],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Arbiscan",
+      url: "https://sepolia.arbiscan.io",
+    },
+  },
+  testnet: true,
+});
 
 export const commitmentVaultConfig = {
   address: VAULT_ADDRESS,
@@ -15,7 +41,12 @@ export const mockUsdcConfig = {
   abi: MockUSDCABI.abi,
 } as const;
 
-export const SUPPORTED_CHAIN = arbitrumSepolia;
+export const SUPPORTED_CHAIN = arbitrumSepoliaCustom;
+
+// Helper to check if token is ETH (address(0))
+export const isETH = (token: `0x${string}`): boolean => {
+  return token === "0x0000000000000000000000000000000000000000";
+};
 
 export enum CommitmentStatus {
   Active = 0,
@@ -45,24 +76,9 @@ export interface Commitment {
 
 export const CHARITIES = [
   {
-    name: "UNICEF",
-    address: "0x1111111111111111111111111111111111111111" as `0x${string}`,
-    description: "Supporting children worldwide",
-  },
-  {
-    name: "Red Cross",
-    address: "0x2222222222222222222222222222222222222222" as `0x${string}`,
-    description: "Humanitarian aid organization",
-  },
-  {
-    name: "Doctors Without Borders",
-    address: "0x3333333333333333333333333333333333333333" as `0x${string}`,
-    description: "Medical humanitarian organization",
-  },
-  {
-    name: "World Wildlife Fund",
-    address: "0x4444444444444444444444444444444444444444" as `0x${string}`,
-    description: "Conservation organization",
+    name: "Developer",
+    address: "0x694B4107ce4C7b14711E26C8bb7CB3795Cd8BD84" as `0x${string}`,
+    description: "Supporting developers",
   },
   {
     name: "Custom Address",
@@ -77,7 +93,22 @@ export function formatAddress(address: string): string {
 
 export function formatAmount(amount: bigint, decimals: number = 6): string {
   const value = Number(amount) / Math.pow(10, decimals);
+  return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: decimals > 6 ? 6 : 2 });
+}
+
+// Format amount based on token type (ETH = 18 decimals, USDC = 6 decimals)
+export function formatAmountByToken(amount: bigint, token: `0x${string}`): string {
+  const decimals = isETH(token) ? 18 : 6;
+  const value = Number(amount) / Math.pow(10, decimals);
+  if (isETH(token)) {
+    return value.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 6 });
+  }
   return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Get currency symbol based on token
+export function getCurrencySymbol(token: `0x${string}`): string {
+  return isETH(token) ? "Ξ" : "$";
 }
 
 export function parseAmount(amount: string, decimals: number = 6): bigint {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { 
@@ -11,8 +11,17 @@ import {
   AlertTriangle,
   ExternalLink,
   Copy,
-  Check
+  Check,
+  Loader2
 } from "lucide-react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useCommitmentVault } from "@/lib/hooks/useContracts";
+import { 
+  CommitmentStatus as ContractStatus, 
+  CommitmentOutcome,
+  type Commitment as ContractCommitment,
+  formatAddress as formatAddr,
+} from "@/lib/contracts";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
 
@@ -33,62 +42,15 @@ interface CommitmentDetail {
   donationTxHash?: string;
 }
 
-const MOCK_COMMITMENTS: Record<string, CommitmentDetail> = {
-  "1": {
-    id: "1",
-    commitment: "Exercise every day for 30 days",
-    description: "At least 30 minutes of physical activity including running, gym, or home workout.",
-    deadline: "2024-02-15T23:59:00",
-    stakeAmount: 100,
-    status: "active",
-    validator: "0x1234567890abcdef1234567890abcdef12345678",
-    charity: "UNICEF",
-    charityAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
-    createdAt: "2024-01-15T10:00:00",
-    txHash: "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
-  },
-  "2": {
-    id: "2",
-    commitment: "Complete React course on Udemy",
-    deadline: "2024-02-01T23:59:00",
-    stakeAmount: 50,
-    status: "pending_validation",
-    validator: "0x2345678901bcdef2345678901bcdef23456789",
-    charity: "Red Cross",
-    charityAddress: "0xbcdef2345678901abcdef2345678901abcdef23",
-    createdAt: "2024-01-10T14:30:00",
-    confirmedAt: "2024-02-01T20:00:00",
-    txHash: "0x8765432109edcba98765432109edcba98765432109edcba98765432109edcba9",
-  },
-  "3": {
-    id: "3",
-    commitment: "Read 5 books this month",
-    deadline: "2024-01-31T23:59:00",
-    stakeAmount: 75,
-    status: "success",
-    validator: "0x3456789012cdef3456789012cdef345678901",
-    charity: "Doctors Without Borders",
-    charityAddress: "0xcdef3456789012abcdef3456789012abcdef34",
-    createdAt: "2024-01-01T09:00:00",
-    confirmedAt: "2024-01-30T18:00:00",
-    resolvedAt: "2024-01-30T20:00:00",
-    txHash: "0x7654321098dcba987654321098dcba987654321098dcba987654321098dcba98",
-  },
-  "4": {
-    id: "4",
-    commitment: "No social media for 2 weeks",
-    deadline: "2024-01-20T23:59:00",
-    stakeAmount: 200,
-    status: "failed",
-    validator: "0x4567890123def4567890123def456789012",
-    charity: "UNICEF",
-    charityAddress: "0xdef4567890123abcdef4567890123abcdef45",
-    createdAt: "2024-01-06T12:00:00",
-    resolvedAt: "2024-01-21T00:00:00",
-    txHash: "0x6543210987cba9876543210987cba9876543210987cba9876543210987cba987",
-    donationTxHash: "0x5432109876ba98765432109876ba98765432109876ba98765432109876ba9876",
-  },
-};
+function mapContractStatus(status: ContractStatus, outcome: CommitmentOutcome): CommitmentStatus {
+  if (status === ContractStatus.Resolved) {
+    return outcome === CommitmentOutcome.Success ? "success" : "failed";
+  }
+  if (status === ContractStatus.PendingValidation) {
+    return "pending_validation";
+  }
+  return "active";
+}
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -148,10 +110,55 @@ function TimelineStep({
 export default function CommitmentDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const commitment = MOCK_COMMITMENTS[id];
+  const { ready, authenticated, login } = usePrivy();
+  const { getCommitment, confirmCompletion: confirmCompletionContract } = useCommitmentVault();
   
+  const [commitment, setCommitment] = useState<CommitmentDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      loadCommitment();
+    }
+  }, [id]);
+
+  const loadCommitment = async () => {
+    setIsLoading(true);
+    try {
+      const c = await getCommitment(BigInt(id));
+      if (c) {
+        setCommitment({
+          id,
+          commitment: c.description,
+          deadline: new Date(Number(c.deadline) * 1000).toISOString(),
+          stakeAmount: Number(c.amount) / 1e6,
+          status: mapContractStatus(c.status, c.outcome),
+          validator: c.validator,
+          charity: formatAddr(c.charity),
+          charityAddress: c.charity,
+          createdAt: new Date().toISOString(),
+          confirmedAt: c.confirmationTime > 0 ? new Date(Number(c.confirmationTime) * 1000).toISOString() : undefined,
+        });
+      }
+    } catch (err) {
+      console.error("Error loading commitment:", err);
+    }
+    setIsLoading(false);
+  };
+
+  if (!ready || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-8 bg-white text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="font-bold">Loading commitment...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!commitment) {
     return (
@@ -169,9 +176,14 @@ export default function CommitmentDetailPage() {
 
   const handleConfirmCompletion = async () => {
     setIsConfirming(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setError(null);
+    try {
+      await confirmCompletionContract(BigInt(id));
+      await loadCommitment();
+    } catch (err: any) {
+      setError(err.message || "Failed to confirm completion");
+    }
     setIsConfirming(false);
-    // In real app, this would update the status
   };
 
   const copyToClipboard = (text: string) => {

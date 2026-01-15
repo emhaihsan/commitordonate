@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight, Info } from "lucide-react";
-
-const CHARITIES = [
-  { id: "unicef", name: "UNICEF", address: "0x1234...5678" },
-  { id: "redcross", name: "Red Cross", address: "0x2345...6789" },
-  { id: "doctors", name: "Doctors Without Borders", address: "0x3456...7890" },
-  { id: "custom", name: "Custom Address", address: "" },
-];
+import { AlertTriangle, ArrowRight, Info, Loader2 } from "lucide-react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useCommitmentVault, useMockUSDC } from "@/lib/hooks/useContracts";
+import { CHARITIES, VAULT_ADDRESS, parseAmount, formatAmount } from "@/lib/contracts";
 
 export default function CommitPage() {
   const router = useRouter();
+  const { ready, authenticated, login } = usePrivy();
+  const { wallets } = useWallets();
+  const { createCommitmentToken, isLoading: isCreating } = useCommitmentVault();
+  const { getBalance, getAllowance, approveToken, faucet, isLoading: isTokenLoading } = useMockUSDC();
+
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     commitment: "",
@@ -23,6 +24,66 @@ export default function CommitPage() {
     customCharityAddress: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [balance, setBalance] = useState<bigint>(BigInt(0));
+  const [needsApproval, setNeedsApproval] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isClaimingFaucet, setIsClaimingFaucet] = useState(false);
+
+  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+
+  useEffect(() => {
+    if (walletAddress) {
+      loadBalance();
+    }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    if (walletAddress && formData.stakeAmount) {
+      checkAllowance();
+    }
+  }, [walletAddress, formData.stakeAmount]);
+
+  const loadBalance = async () => {
+    if (!walletAddress) return;
+    const bal = await getBalance(walletAddress);
+    setBalance(bal);
+  };
+
+  const checkAllowance = async () => {
+    if (!walletAddress || !formData.stakeAmount) return;
+    const amount = parseAmount(formData.stakeAmount);
+    const allowance = await getAllowance(walletAddress, VAULT_ADDRESS);
+    setNeedsApproval(allowance < amount);
+  };
+
+  const handleClaimFaucet = async () => {
+    setIsClaimingFaucet(true);
+    setError(null);
+    try {
+      await faucet();
+      // Wait a bit for transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await loadBalance();
+      // Force re-check allowance after balance update
+      if (formData.stakeAmount) {
+        await checkAllowance();
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to claim from faucet");
+    }
+    setIsClaimingFaucet(false);
+  };
+
+  const handleApprove = async () => {
+    setError(null);
+    try {
+      const amount = parseAmount(formData.stakeAmount);
+      await approveToken(VAULT_ADDRESS, amount);
+      setNeedsApproval(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to approve token");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,12 +91,102 @@ export default function CommitPage() {
       setStep(step + 1);
       return;
     }
-    
+
+    if (!authenticated) {
+      login();
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate transaction
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    router.push("/dashboard?created=true");
+    setError(null);
+
+    try {
+      // Validate inputs
+      const amount = parseAmount(formData.stakeAmount);
+      if (amount <= BigInt(0)) {
+        throw new Error("Stake amount must be greater than 0");
+      }
+
+      // Check balance
+      console.log("Balance check:", { balance: balance.toString(), amount: amount.toString(), formatted: formatAmount(balance) });
+      if (balance < amount) {
+        throw new Error(`Insufficient balance. You have $${formatAmount(balance)} but need $${formData.stakeAmount}`);
+      }
+
+      // Check allowance
+      if (!walletAddress) {
+        throw new Error("Wallet not connected");
+      }
+      const allowance = await getAllowance(walletAddress, VAULT_ADDRESS);
+      console.log("Allowance check:", { allowance: allowance.toString(), amount: amount.toString(), vaultAddress: VAULT_ADDRESS });
+      if (allowance < amount) {
+        throw new Error(`Insufficient allowance. Current: $${formatAmount(allowance)}, Required: $${formData.stakeAmount}. Please approve USDC first.`);
+      }
+
+      // Validate addresses
+      if (!formData.validatorAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        throw new Error("Invalid validator address");
+      }
+
+      const selectedCharity = CHARITIES.find((c) => c.name === formData.charityId);
+      const charityAddress = formData.charityId === "Custom Address" 
+        ? formData.customCharityAddress as `0x${string}`
+        : selectedCharity?.address || CHARITIES[0].address;
+      
+      if (!charityAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        throw new Error("Invalid charity address");
+      }
+
+      const deadlineTimestamp = BigInt(Math.floor(new Date(formData.deadline).getTime() / 1000));
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      if (deadlineTimestamp <= now) {
+        throw new Error("Deadline must be in the future");
+      }
+
+      const commitmentId = await createCommitmentToken(
+        formData.validatorAddress as `0x${string}`,
+        charityAddress,
+        process.env.NEXT_PUBLIC_MOCKUSDC_ADDRESS as `0x${string}`,
+        amount,
+        deadlineTimestamp,
+        formData.commitment
+      );
+
+      router.push(`/dashboard?created=true&id=${commitmentId}`);
+    } catch (err: any) {
+      console.error("Error creating commitment:", err);
+      setError(err.message || "Failed to create commitment");
+      setIsSubmitting(false);
+    }
   };
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-8 bg-white text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="font-bold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-12 bg-white text-center max-w-md">
+          <h1 className="text-3xl font-black mb-4">🔐 Login Required</h1>
+          <p className="text-lg mb-6">You need to connect your wallet to create a commitment.</p>
+          <button
+            onClick={login}
+            className="brutal-btn bg-[var(--pink)] px-8 py-4 font-bold text-lg"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const canProceed = () => {
     if (step === 1) {
@@ -136,12 +287,28 @@ export default function CommitPage() {
               </div>
 
               <div className="space-y-6">
+                {/* Balance Card */}
+                <div className="brutal-card p-4 bg-[var(--mint)] flex items-center justify-between">
+                  <div>
+                    <p className="font-mono text-xs uppercase tracking-widest font-bold">Your USDC Balance</p>
+                    <p className="font-mono text-2xl font-black">${formatAmount(balance)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClaimFaucet}
+                    disabled={isClaimingFaucet}
+                    className="brutal-btn bg-[var(--cyan)] px-4 py-2 font-bold text-sm disabled:opacity-50"
+                  >
+                    {isClaimingFaucet ? "Claiming..." : "🚰 Get Test USDC"}
+                  </button>
+                </div>
+
                 <div className="brutal-card p-6 bg-[var(--yellow)]">
                   <label className="block font-mono text-xs uppercase tracking-widest mb-3 font-bold">
                     💰 Stake Amount (USDC)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-lg">$</span>
+                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 font-bold text-lg">$</span>
                     <input
                       type="number"
                       value={formData.stakeAmount}
@@ -197,9 +364,9 @@ export default function CommitPage() {
               <div className="space-y-4">
                 {CHARITIES.map((charity) => (
                   <label
-                    key={charity.id}
+                    key={charity.name}
                     className={`block brutal-card p-5 cursor-pointer transition-all ${
-                      formData.charityId === charity.id
+                      formData.charityId === charity.name
                         ? "bg-[var(--mint)] -translate-y-1"
                         : "bg-white hover:-translate-y-1"
                     }`}
@@ -208,33 +375,31 @@ export default function CommitPage() {
                       <input
                         type="radio"
                         name="charity"
-                        value={charity.id}
-                        checked={formData.charityId === charity.id}
+                        value={charity.name}
+                        checked={formData.charityId === charity.name}
                         onChange={(e) => setFormData({ ...formData, charityId: e.target.value })}
                         className="sr-only"
                       />
                       <div
                         className={`w-6 h-6 brutal-border flex items-center justify-center ${
-                          formData.charityId === charity.id
+                          formData.charityId === charity.name
                             ? "bg-black"
                             : "bg-white"
                         }`}
                       >
-                        {formData.charityId === charity.id && (
+                        {formData.charityId === charity.name && (
                           <span className="text-white text-sm">✓</span>
                         )}
                       </div>
                       <div>
                         <p className="font-bold text-lg">{charity.name}</p>
-                        {charity.address && (
-                          <p className="font-mono text-xs text-[var(--muted)]">{charity.address}</p>
-                        )}
+                        <p className="text-sm text-[var(--muted)]">{charity.description}</p>
                       </div>
                     </div>
                   </label>
                 ))}
 
-                {formData.charityId === "custom" && (
+                {formData.charityId === "Custom Address" && (
                   <div className="ml-10">
                     <input
                       type="text"
@@ -248,7 +413,7 @@ export default function CommitPage() {
               </div>
 
               {/* Final Warning */}
-              <div className="brutal-card p-5 bg-[var(--danger)] text-white flex gap-4">
+              <div className="brutal-card p-5 bg-[var(--danger)] text-black flex gap-4">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <div>
                   <p className="font-bold text-lg mb-1">⚠️ This action is IRREVERSIBLE</p>
@@ -258,6 +423,13 @@ export default function CommitPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="brutal-card p-4 bg-[var(--danger)] text-black mt-6">
+              <p className="font-bold">⚠️ Error: {error}</p>
             </div>
           )}
 
@@ -275,27 +447,51 @@ export default function CommitPage() {
               <div />
             )}
 
-            <button
-              type="submit"
-              disabled={!canProceed() || isSubmitting}
-              className={`brutal-btn px-8 py-4 font-bold inline-flex items-center gap-2 ${
-                step === 3 ? "bg-[var(--danger)] text-white" : "bg-[var(--pink)]"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isSubmitting ? (
-                "🔒 Locking funds..."
-              ) : step === 3 ? (
-                <>
-                  🔒 Lock Funds & Create
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
+            {step === 3 && needsApproval ? (
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={isTokenLoading || !formData.stakeAmount}
+                className="brutal-btn px-8 py-4 font-bold inline-flex items-center gap-2 bg-[var(--orange)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTokenLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  <>
+                    ✅ Approve USDC
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!canProceed() || isSubmitting || isCreating}
+                className={`brutal-btn px-8 py-4 font-bold inline-flex items-center gap-2 ${
+                  step === 3 ? "bg-[var(--danger)] text-white" : "bg-[var(--pink)]"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSubmitting || isCreating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    🔒 Locking funds...
+                  </>
+                ) : step === 3 ? (
+                  <>
+                    🔒 Lock Funds & Create
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </form>
       </div>

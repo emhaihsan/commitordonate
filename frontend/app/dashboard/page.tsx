@@ -1,11 +1,21 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Plus, Flame, Trophy, Skull } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Plus, Flame, Trophy, Skull, Loader2 } from "lucide-react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useCommitmentVault } from "@/lib/hooks/useContracts";
+import { 
+  CommitmentStatus as ContractStatus, 
+  CommitmentOutcome,
+  type Commitment as ContractCommitment,
+  formatAddress,
+  formatAmount,
+} from "@/lib/contracts";
 
 type CommitmentStatus = "active" | "pending_confirmation" | "pending_validation" | "success" | "failed";
 
-interface Commitment {
+interface DisplayCommitment {
   id: string;
   commitment: string;
   deadline: string;
@@ -18,52 +28,29 @@ interface Commitment {
   resolvedAt?: string;
 }
 
-const MOCK_COMMITMENTS: Commitment[] = [
-  {
-    id: "1",
-    commitment: "Exercise every day for 30 days",
-    deadline: "2024-02-15T23:59:00",
-    stakeAmount: 100,
-    status: "active",
-    validator: "0x1234...5678",
-    charity: "UNICEF",
-    createdAt: "2024-01-15T10:00:00",
-  },
-  {
-    id: "2",
-    commitment: "Complete React course on Udemy",
-    deadline: "2024-02-01T23:59:00",
-    stakeAmount: 50,
-    status: "pending_validation",
-    validator: "0x2345...6789",
-    charity: "Red Cross",
-    createdAt: "2024-01-10T14:30:00",
-    confirmedAt: "2024-02-01T20:00:00",
-  },
-  {
-    id: "3",
-    commitment: "Read 5 books this month",
-    deadline: "2024-01-31T23:59:00",
-    stakeAmount: 75,
-    status: "success",
-    validator: "0x3456...7890",
-    charity: "Doctors Without Borders",
-    createdAt: "2024-01-01T09:00:00",
-    confirmedAt: "2024-01-30T18:00:00",
-    resolvedAt: "2024-01-30T20:00:00",
-  },
-  {
-    id: "4",
-    commitment: "No social media for 2 weeks",
-    deadline: "2024-01-20T23:59:00",
-    stakeAmount: 200,
-    status: "failed",
-    validator: "0x4567...8901",
-    charity: "UNICEF",
-    createdAt: "2024-01-06T12:00:00",
-    resolvedAt: "2024-01-21T00:00:00",
-  },
-];
+function mapContractStatus(status: ContractStatus, outcome: CommitmentOutcome): CommitmentStatus {
+  if (status === ContractStatus.Resolved) {
+    return outcome === CommitmentOutcome.Success ? "success" : "failed";
+  }
+  if (status === ContractStatus.PendingValidation) {
+    return "pending_validation";
+  }
+  return "active";
+}
+
+function mapContractCommitment(id: bigint, c: ContractCommitment): DisplayCommitment {
+  return {
+    id: id.toString(),
+    commitment: c.description,
+    deadline: new Date(Number(c.deadline) * 1000).toISOString(),
+    stakeAmount: Number(c.amount) / 1e6,
+    status: mapContractStatus(c.status, c.outcome),
+    validator: formatAddress(c.validator),
+    charity: formatAddress(c.charity),
+    createdAt: new Date().toISOString(),
+    confirmedAt: c.confirmationTime > 0 ? new Date(Number(c.confirmationTime) * 1000).toISOString() : undefined,
+  };
+}
 
 const STATUS_CONFIG: Record<CommitmentStatus, { label: string; icon: React.ReactNode; bgColor: string; textColor: string }> = {
   active: {
@@ -121,16 +108,82 @@ function formatTimeRemaining(deadline: string) {
 }
 
 export default function DashboardPage() {
-  const activeCommitments = MOCK_COMMITMENTS.filter(
+  const { ready, authenticated, login } = usePrivy();
+  const { wallets } = useWallets();
+  const { getUserCommitments, getCommitment } = useCommitmentVault();
+
+  const [commitments, setCommitments] = useState<DisplayCommitment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+
+  useEffect(() => {
+    if (walletAddress) {
+      loadCommitments();
+    } else {
+      setIsLoading(false);
+    }
+  }, [walletAddress]);
+
+  const loadCommitments = async () => {
+    if (!walletAddress) return;
+    setIsLoading(true);
+    try {
+      const commitmentIds = await getUserCommitments(walletAddress);
+      const loadedCommitments: DisplayCommitment[] = [];
+      
+      for (const id of commitmentIds) {
+        const commitment = await getCommitment(id);
+        if (commitment) {
+          loadedCommitments.push(mapContractCommitment(id, commitment));
+        }
+      }
+      
+      setCommitments(loadedCommitments);
+    } catch (error) {
+      console.error("Error loading commitments:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const activeCommitments = commitments.filter(
     (c) => c.status === "active" || c.status === "pending_confirmation" || c.status === "pending_validation"
   );
-  const pastCommitments = MOCK_COMMITMENTS.filter(
+  const pastCommitments = commitments.filter(
     (c) => c.status === "success" || c.status === "failed"
   );
 
   const totalStaked = activeCommitments.reduce((sum, c) => sum + c.stakeAmount, 0);
-  const successCount = MOCK_COMMITMENTS.filter((c) => c.status === "success").length;
-  const failedCount = MOCK_COMMITMENTS.filter((c) => c.status === "failed").length;
+  const successCount = commitments.filter((c) => c.status === "success").length;
+  const failedCount = commitments.filter((c) => c.status === "failed").length;
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-8 bg-white text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="font-bold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-12 bg-white text-center max-w-md">
+          <h1 className="text-3xl font-black mb-4">🔐 Login Required</h1>
+          <p className="text-lg mb-6">Connect your wallet to view your commitments.</p>
+          <button
+            onClick={login}
+            className="brutal-btn bg-[var(--pink)] px-8 py-4 font-bold text-lg"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -151,6 +204,14 @@ export default function DashboardPage() {
             New Commitment
           </Link>
         </div>
+
+        {isLoading ? (
+          <div className="brutal-card p-12 bg-white text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="font-bold">Loading your commitments...</p>
+          </div>
+        ) : (
+          <>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
@@ -309,6 +370,8 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
+        </>
+        )}
       </div>
     </div>
   );

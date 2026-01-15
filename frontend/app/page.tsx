@@ -1,5 +1,6 @@
-import Link from "next/link";
-import { ArrowRight, Lock, Users, Heart, Clock, Zap, Target, Skull } from "lucide-react";
+import { Lock, Users, Heart, Clock, Zap, Target, Skull } from "lucide-react";
+import HeroButtons from "@/components/HeroButtons";
+import CTAButton from "@/components/CTAButton";
 
 export default function Home() {
   return (
@@ -28,21 +29,7 @@ export default function Home() {
                 Stake money on your commitments. Keep your promise and get it back. 
                 <span className="bg-[var(--pink)] px-2">Fail, and it goes to charity.</span> No excuses. No retries.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/commit"
-                  className="brutal-btn bg-[var(--pink)] px-8 py-4 text-lg font-bold inline-flex items-center gap-3"
-                >
-                  Create Commitment
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="brutal-btn bg-white px-8 py-4 text-lg font-bold inline-flex items-center gap-3"
-                >
-                  View Dashboard
-                </Link>
-              </div>
+              <HeroButtons />
             </div>
             
             {/* Hero Card */}
@@ -197,13 +184,7 @@ export default function Home() {
           <p className="text-xl font-medium mb-8 max-w-md mx-auto">
             The best time to start was yesterday. The second best time is now.
           </p>
-          <Link
-            href="/commit"
-            className="brutal-btn bg-black text-white px-10 py-5 text-xl font-bold inline-flex items-center gap-3"
-          >
-            Create Your First Commitment
-            <ArrowRight className="w-6 h-6" />
-          </Link>
+          <CTAButton />
         </div>
       </section>
 

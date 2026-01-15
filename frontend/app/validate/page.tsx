@@ -1,8 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertTriangle, User } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertTriangle, User, Loader2 } from "lucide-react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useCommitmentVault } from "@/lib/hooks/useContracts";
+import { 
+  CommitmentStatus as ContractStatus, 
+  CommitmentOutcome,
+  type Commitment as ContractCommitment,
+  formatAddress as formatAddr,
+  formatAmount,
+} from "@/lib/contracts";
 
 interface PendingValidation {
   id: string;
@@ -16,31 +25,6 @@ interface PendingValidation {
   charity: string;
 }
 
-const MOCK_PENDING: PendingValidation[] = [
-  {
-    id: "v1",
-    commitment: "Exercise every day for 30 days",
-    committer: "Alice",
-    committerAddress: "0x1234567890abcdef1234567890abcdef12345678",
-    stakeAmount: 100,
-    deadline: "2024-02-15T23:59:00",
-    confirmedAt: "2024-02-15T18:00:00",
-    expiresAt: "2024-02-16T18:00:00",
-    charity: "UNICEF",
-  },
-  {
-    id: "v2",
-    commitment: "Complete React course on Udemy",
-    committer: "Bob",
-    committerAddress: "0x2345678901bcdef2345678901bcdef23456789",
-    stakeAmount: 50,
-    deadline: "2024-02-01T23:59:00",
-    confirmedAt: "2024-02-01T20:00:00",
-    expiresAt: "2024-02-02T20:00:00",
-    charity: "Red Cross",
-  },
-];
-
 interface PastValidation {
   id: string;
   commitment: string;
@@ -49,25 +33,6 @@ interface PastValidation {
   outcome: "approved" | "rejected";
   resolvedAt: string;
 }
-
-const MOCK_PAST: PastValidation[] = [
-  {
-    id: "pv1",
-    commitment: "Read 5 books this month",
-    committer: "Charlie",
-    stakeAmount: 75,
-    outcome: "approved",
-    resolvedAt: "2024-01-30T20:00:00",
-  },
-  {
-    id: "pv2",
-    commitment: "No social media for 2 weeks",
-    committer: "Diana",
-    stakeAmount: 200,
-    outcome: "rejected",
-    resolvedAt: "2024-01-21T00:00:00",
-  },
-];
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -95,20 +60,34 @@ function formatAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function ValidationCard({ validation }: { validation: PendingValidation }) {
+function ValidationCard({ validation, onAction }: { validation: PendingValidation; onAction?: () => void }) {
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [showConfirmReject, setShowConfirmReject] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { approve, reject } = useCommitmentVault();
 
   const handleApprove = async () => {
     setIsApproving(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setError(null);
+    try {
+      await approve(BigInt(validation.id));
+      onAction?.();
+    } catch (err: any) {
+      setError(err.message || "Failed to approve");
+    }
     setIsApproving(false);
   };
 
   const handleReject = async () => {
     setIsRejecting(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setError(null);
+    try {
+      await reject(BigInt(validation.id));
+      onAction?.();
+    } catch (err: any) {
+      setError(err.message || "Failed to reject");
+    }
     setIsRejecting(false);
     setShowConfirmReject(false);
   };
@@ -166,6 +145,13 @@ function ValidationCard({ validation }: { validation: PendingValidation }) {
           </div>
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="brutal-card p-4 bg-[var(--danger)] text-white mb-6">
+            <p className="font-bold">⚠️ {error}</p>
+          </div>
+        )}
+
         {/* Actions */}
         {!showConfirmReject ? (
           <div className="flex gap-4">
@@ -220,6 +206,96 @@ function ValidationCard({ validation }: { validation: PendingValidation }) {
 }
 
 export default function ValidatePage() {
+  const { ready, authenticated, login } = usePrivy();
+  const { wallets } = useWallets();
+  const { getValidatorCommitments, getCommitment } = useCommitmentVault();
+
+  const [pendingValidations, setPendingValidations] = useState<PendingValidation[]>([]);
+  const [pastValidations, setPastValidations] = useState<PastValidation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
+
+  useEffect(() => {
+    if (walletAddress) {
+      loadValidations();
+    } else {
+      setIsLoading(false);
+    }
+  }, [walletAddress]);
+
+  const loadValidations = async () => {
+    if (!walletAddress) return;
+    setIsLoading(true);
+    try {
+      const commitmentIds = await getValidatorCommitments(walletAddress);
+      const pending: PendingValidation[] = [];
+      const past: PastValidation[] = [];
+
+      for (const id of commitmentIds) {
+        const c = await getCommitment(id);
+        if (!c) continue;
+
+        if (c.status === ContractStatus.PendingValidation) {
+          pending.push({
+            id: id.toString(),
+            commitment: c.description,
+            committer: formatAddr(c.creator),
+            committerAddress: c.creator,
+            stakeAmount: Number(c.amount) / 1e6,
+            deadline: new Date(Number(c.deadline) * 1000).toISOString(),
+            confirmedAt: new Date(Number(c.confirmationTime) * 1000).toISOString(),
+            expiresAt: new Date(Number(c.validatorDeadline) * 1000).toISOString(),
+            charity: formatAddr(c.charity),
+          });
+        } else if (c.status === ContractStatus.Resolved) {
+          past.push({
+            id: id.toString(),
+            commitment: c.description,
+            committer: formatAddr(c.creator),
+            stakeAmount: Number(c.amount) / 1e6,
+            outcome: c.outcome === CommitmentOutcome.Success ? "approved" : "rejected",
+            resolvedAt: new Date().toISOString(),
+          });
+        }
+      }
+
+      setPendingValidations(pending);
+      setPastValidations(past);
+    } catch (error) {
+      console.error("Error loading validations:", error);
+    }
+    setIsLoading(false);
+  };
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-8 bg-white text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="font-bold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="brutal-card p-12 bg-white text-center max-w-md">
+          <h1 className="text-3xl font-black mb-4">🔐 Login Required</h1>
+          <p className="text-lg mb-6">Connect your wallet to see validations assigned to you.</p>
+          <button
+            onClick={login}
+            className="brutal-btn bg-[var(--pink)] px-8 py-4 font-bold text-lg"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-6 py-12">
@@ -235,16 +311,23 @@ export default function ValidatePage() {
           </p>
         </div>
 
+        {isLoading ? (
+          <div className="brutal-card p-12 bg-white text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="font-bold">Loading validations...</p>
+          </div>
+        ) : (
+          <>
         {/* Pending Validations */}
         <section className="mb-12">
-          {MOCK_PENDING.length === 0 ? (
+          {pendingValidations.length === 0 ? (
             <div className="brutal-card p-12 text-center bg-white">
               <p className="text-[var(--muted)] font-medium">No pending validations</p>
             </div>
           ) : (
             <div className="space-y-6">
-              {MOCK_PENDING.map((validation) => (
-                <ValidationCard key={validation.id} validation={validation} />
+              {pendingValidations.map((validation) => (
+                <ValidationCard key={validation.id} validation={validation} onAction={loadValidations} />
               ))}
             </div>
           )}
@@ -257,7 +340,7 @@ export default function ValidatePage() {
             Validations
           </h2>
           
-          {MOCK_PAST.length === 0 ? (
+          {pastValidations.length === 0 ? (
             <div className="brutal-card p-12 text-center bg-white">
               <p className="text-[var(--muted)] font-medium">No past validations</p>
             </div>
@@ -284,7 +367,7 @@ export default function ValidatePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_PAST.map((validation) => (
+                  {pastValidations.map((validation) => (
                     <tr key={validation.id} className="border-b-[2px] border-black last:border-b-0 hover:bg-[var(--background)]">
                       <td className="p-4 font-bold">{validation.commitment}</td>
                       <td className="p-4 font-medium">{validation.committer}</td>
@@ -311,6 +394,9 @@ export default function ValidatePage() {
             </div>
           )}
         </section>
+        </>
+        )}
+
 
         {/* Info Section */}
         <section className="mt-12 bg-[var(--cyan)] brutal-border p-8">

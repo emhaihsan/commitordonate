@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useWeb3Auth, useWeb3AuthConnect, useWeb3AuthDisconnect } from "@web3auth/modal/react";
-import { useAccount } from "wagmi";
-import { LogOut, Wallet, User, Copy, X, RefreshCw } from "lucide-react";
+import { useAccount, useSwitchChain } from "wagmi";
+import { LogOut, Wallet, User, Copy, X, RefreshCw, AlertTriangle } from "lucide-react";
 import { formatAddress, MOCKUSDC_ADDRESS, formatAmountByToken } from "@/lib/contracts";
 import { createPublicClient, http } from "viem";
 import { arbitrumSepoliaCustom } from "@/lib/contracts";
@@ -14,7 +15,8 @@ export default function Header() {
   const { isInitialized, isConnected } = useWeb3Auth();
   const { connect } = useWeb3AuthConnect();
   const { disconnect } = useWeb3AuthDisconnect();
-  const { address } = useAccount();
+  const { address, chain } = useAccount();
+  const { switchChain } = useSwitchChain();
 
   const walletAddress = address as `0x${string}` | undefined;
   const [showWalletModal, setShowWalletModal] = useState(false);
@@ -22,6 +24,27 @@ export default function Header() {
   const [usdcBalance, setUsdcBalance] = useState<bigint>(BigInt(0));
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showChainWarning, setShowChainWarning] = useState(false);
+
+  // Check if wallet is on wrong chain
+  const isWrongChain = chain && chain.id !== arbitrumSepoliaCustom.id;
+
+  useEffect(() => {
+    if (isConnected && isWrongChain) {
+      setShowChainWarning(true);
+    } else {
+      setShowChainWarning(false);
+    }
+  }, [isConnected, isWrongChain]);
+
+  const handleSwitchChain = async () => {
+    try {
+      await switchChain({ chainId: arbitrumSepoliaCustom.id });
+      setShowChainWarning(false);
+    } catch (error) {
+      console.error("Failed to switch chain:", error);
+    }
+  };
 
   const publicClient = createPublicClient({
     chain: arbitrumSepoliaCustom,
@@ -75,9 +98,10 @@ export default function Header() {
         <div className="flex h-20 items-center justify-between">
           <Link
             href="/"
-            className="brutal-btn bg-[var(--yellow)] px-4 py-2 text-lg font-bold tracking-tight"
+            className="flex items-center gap-3 brutal-btn bg-[var(--yellow)] px-4 py-2 text-lg font-bold tracking-tight"
           >
-            💀 COMMIT_OR_DONATE
+            <Image src="/logo.webp" alt="Commit or Donate" width={32} height={32} className="w-8 h-8" />
+            <span>COMMIT_OR_DONATE</span>
           </Link>
 
           {!isInitialized ? (
@@ -133,6 +157,29 @@ export default function Header() {
           )}
         </div>
       </div>
+
+      {/* Chain Warning Banner */}
+      {showChainWarning && (
+        <div className="bg-[var(--orange)] border-b-[3px] border-black">
+          <div className="mx-auto max-w-7xl px-6 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <div>
+                  <p className="font-bold text-sm">Wrong Network Detected</p>
+                  <p className="text-xs">Please switch to Arbitrum Sepolia to use this app</p>
+                </div>
+              </div>
+              <button
+                onClick={handleSwitchChain}
+                className="brutal-btn bg-black text-white px-4 py-2 text-sm font-bold hover:bg-gray-800 shrink-0"
+              >
+                Switch to Arbitrum Sepolia
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Wallet Details Modal */}
       {showWalletModal && (

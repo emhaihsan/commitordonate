@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Lock, Users, Heart, Clock, Zap, Target, Skull } from "lucide-react";
 import HeroButtons from "@/components/HeroButtons";
 import CTAButton from "@/components/CTAButton";
@@ -37,7 +38,13 @@ export default function Home() {
               <div className="brutal-card p-8 bg-[var(--cyan)] rotate-3 hover:rotate-0 transition-transform">
                 <div className="brutal-card p-6 bg-white -rotate-2">
                   <div className="text-center">
-                    <Skull className="w-16 h-16 mx-auto mb-4" />
+                    <Image 
+                      src="/logohero.webp" 
+                      alt="Commit or Donate" 
+                      width={120} 
+                      height={120} 
+                      className="w-24 h-24 mx-auto mb-4"
+                    />
                     <p className="font-mono text-7xl font-black">$100</p>
                     <p className="font-mono text-lg font-bold mt-2 bg-black text-white inline-block px-4 py-1">
                       AT STAKE

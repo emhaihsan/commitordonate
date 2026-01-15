@@ -33,6 +33,26 @@ export function useCommitmentVault() {
   const publicClient = usePublicClient();
   const [isLoading, setIsLoading] = useState(false);
 
+  const getFeeOverrides = useCallback(async () => {
+    const fees = await publicClient.estimateFeesPerGas();
+
+    const feeMultiplier = BigInt(120);
+    const feeDivisor = BigInt(100);
+
+    if (fees.gasPrice) {
+      const gasPrice = (fees.gasPrice * feeMultiplier) / feeDivisor;
+      return { gasPrice };
+    }
+
+    if (fees.maxFeePerGas && fees.maxPriorityFeePerGas) {
+      const maxPriorityFeePerGas = (fees.maxPriorityFeePerGas * feeMultiplier) / feeDivisor;
+      const maxFeePerGas = (fees.maxFeePerGas * feeMultiplier) / feeDivisor;
+      return { maxFeePerGas, maxPriorityFeePerGas };
+    }
+
+    return {};
+  }, [publicClient]);
+
   const getActiveAccount = useCallback((): `0x${string}` => {
     if (!isConnected || !address) {
       throw new Error("No wallet connected");
@@ -124,12 +144,15 @@ export function useCommitmentVault() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
           functionName: "createCommitmentToken",
           args: [validator, charity, token, amount, deadline, description],
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -143,7 +166,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter]
+    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter, getFeeOverrides]
   );
 
   const createCommitmentETH = useCallback(
@@ -160,6 +183,8 @@ export function useCommitmentVault() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
           functionName: "createCommitmentETH",
@@ -167,6 +192,7 @@ export function useCommitmentVault() {
           value: amount,
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -180,7 +206,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter]
+    [getWalletClient, getActiveAccount, publicClient, getCommitmentCounter, getFeeOverrides]
   );
 
   const confirmCompletion = useCallback(
@@ -192,12 +218,15 @@ export function useCommitmentVault() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
           functionName: "confirmCompletion",
           args: [commitmentId],
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -209,7 +238,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
   );
 
   const approve = useCallback(
@@ -221,12 +250,15 @@ export function useCommitmentVault() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
           functionName: "approve",
           args: [commitmentId],
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -238,7 +270,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
   );
 
   const reject = useCallback(
@@ -250,12 +282,15 @@ export function useCommitmentVault() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
           functionName: "reject",
           args: [commitmentId],
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -267,7 +302,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
   );
 
   const resolveExpired = useCallback(
@@ -278,12 +313,15 @@ export function useCommitmentVault() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...commitmentVaultConfig,
           functionName: "resolveExpired",
           args: [commitmentId],
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -295,7 +333,7 @@ export function useCommitmentVault() {
         throw error;
       }
     },
-    [getWalletClient, getActiveAccount, publicClient]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
   );
 
   return {
@@ -318,6 +356,26 @@ export function useMockUSDC() {
   const { data: walletClient } = useWagmiWalletClient();
   const publicClient = usePublicClient();
   const [isLoading, setIsLoading] = useState(false);
+
+  const getFeeOverrides = useCallback(async () => {
+    const fees = await publicClient.estimateFeesPerGas();
+
+    const feeMultiplier = BigInt(120);
+    const feeDivisor = BigInt(100);
+
+    if (fees.gasPrice) {
+      const gasPrice = (fees.gasPrice * feeMultiplier) / feeDivisor;
+      return { gasPrice };
+    }
+
+    if (fees.maxFeePerGas && fees.maxPriorityFeePerGas) {
+      const maxPriorityFeePerGas = (fees.maxPriorityFeePerGas * feeMultiplier) / feeDivisor;
+      const maxFeePerGas = (fees.maxFeePerGas * feeMultiplier) / feeDivisor;
+      return { maxFeePerGas, maxPriorityFeePerGas };
+    }
+
+    return {};
+  }, [publicClient]);
 
   const getActiveAccount = useCallback((): `0x${string}` => {
     if (!isConnected || !address) {
@@ -373,12 +431,15 @@ export function useMockUSDC() {
         if (!walletClient) throw new Error("No wallet connected");
         const account = getActiveAccount();
 
+        const feeOverrides = await getFeeOverrides();
+
         const hash = await walletClient.writeContract({
           ...mockUsdcConfig,
           functionName: "approve",
           args: [spender, amount],
           chain: arbitrumSepoliaCustom,
           account,
+          ...feeOverrides,
         });
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -390,7 +451,7 @@ export function useMockUSDC() {
         throw error;
       }
     },
-    [getWalletClient, publicClient]
+    [getWalletClient, getActiveAccount, publicClient, getFeeOverrides]
   );
 
   const faucet = useCallback(async (): Promise<{ success: boolean; txHash: string }> => {
@@ -420,11 +481,14 @@ export function useMockUSDC() {
       if (!wc) throw new Error("No wallet connected");
       const account = getActiveAccount();
 
+      const feeOverrides = await getFeeOverrides();
+
       const hash = await wc.writeContract({
         ...mockUsdcConfig,
         functionName: "faucet",
         chain: arbitrumSepoliaCustom,
         account,
+        ...feeOverrides,
       });
 
       await publicClient.waitForTransactionReceipt({ hash });

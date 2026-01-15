@@ -72,63 +72,6 @@ No oracles. No automation services. No AI.
 | CommitmentVault | `0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d` | https://sepolia.mantlescan.xyz/address/0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d |
 | MockUSDC | `0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0` | https://sepolia.mantlescan.xyz/address/0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0 |
 
----
-
-## Demo Instructions (Hackathon-Friendly)
-
-1. Connect using social login (email) via Web3Auth
-2. Claim mockUSDC from the in-app faucet (optional)
-3. Create a commitment with a short deadline
-4. Stake MNT or mockUSDC
-5. Skip validator confirmation to trigger **auto-donation**
-6. Observe on-chain transaction sending funds to the charity address
-
-Designed so judges can test **without risking real assets**.
-
----
-
-## What This Project Does NOT Implement
-
-To stay focused and shippable within a hackathon window, the following are **intentionally excluded**:
-
-- ❌ AI agents or AI decision-making
-- ❌ Dispute resolution or appeals
-- ❌ Validator incentives or slashing
-- ❌ Reputation systems or social graphs
-- ❌ DAO governance or admin controls
-- ❌ Automated reminders or off-chain cron jobs
-
----
-
-## Local Development
-
-1. Install dependencies
-
-```bash
-cd frontend
-npm install
-```
-
-2. Configure env
-
-Create `frontend/.env.local` (see `frontend/.env.local.example`). Minimum required:
-
-- `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID`
-- `NEXT_PUBLIC_VAULT_ADDRESS`
-- `NEXT_PUBLIC_MOCKUSDC_ADDRESS`
-- `NEXT_PUBLIC_CHAIN_ID=5003`
-- `NEXT_PUBLIC_MANTLE_RPC_URL`
-
-3. Run
-
-```bash
-cd frontend
-npm run dev
-```
-
-This is a **minimal, opinionated MVP** — not a productivity platform.
-
----
 
 ## Why This Matters
 

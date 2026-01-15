@@ -123,9 +123,18 @@ export default function CommitmentDetailPage() {
   const [commitment, setCommitment] = useState<CommitmentDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmTxHash, setConfirmTxHash] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`confirmTxHash:${id}`);
+      if (saved) setConfirmTxHash(saved);
+    } catch {
+      // ignore
+    }
+  }, [id]);
 
   useEffect(() => {
     if (id) {
@@ -191,6 +200,11 @@ export default function CommitmentDetailPage() {
     try {
       const result = await confirmCompletionContract(BigInt(id));
       setConfirmTxHash(result.txHash);
+      try {
+        window.localStorage.setItem(`confirmTxHash:${id}`, result.txHash);
+      } catch {
+        // ignore
+      }
       await loadCommitment();
     } catch (err: any) {
       setError(err.message || "Failed to confirm completion");
@@ -398,6 +412,23 @@ export default function CommitmentDetailPage() {
                       ⚠️ If the validator does not respond within 24 hours, 
                       your commitment will be marked as failed and funds will be donated.
                     </p>
+                    {confirmTxHash && (
+                      <div className="mt-4 p-3 bg-white border-2 border-black rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-bold text-sm">Confirmation transaction</span>
+                        </div>
+                        <a
+                          href={getExplorerTxUrl(confirmTxHash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-mono hover:underline mt-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          View on Arbiscan: {formatTxHash(confirmTxHash)}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

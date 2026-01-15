@@ -34,20 +34,27 @@ export function useCommitmentVault() {
   const [isLoading, setIsLoading] = useState(false);
 
   const getFeeOverrides = useCallback(async () => {
-    const fees = await publicClient.estimateFeesPerGas();
+    const [fees, block] = await Promise.all([
+      publicClient.estimateFeesPerGas(),
+      publicClient.getBlock({ blockTag: "latest" }),
+    ]);
 
-    const feeMultiplier = BigInt(120);
-    const feeDivisor = BigInt(100);
+    const baseFeePerGas = block.baseFeePerGas ?? BigInt(0);
+    const fallbackPriorityFee = BigInt(1500000);
+
+    if (baseFeePerGas > BigInt(0)) {
+      const maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? fallbackPriorityFee;
+      const maxFeePerGas = baseFeePerGas * BigInt(2) + maxPriorityFeePerGas;
+      return { maxFeePerGas, maxPriorityFeePerGas };
+    }
 
     if (fees.gasPrice) {
-      const gasPrice = (fees.gasPrice * feeMultiplier) / feeDivisor;
+      const gasPrice = fees.gasPrice;
       return { gasPrice };
     }
 
     if (fees.maxFeePerGas && fees.maxPriorityFeePerGas) {
-      const maxPriorityFeePerGas = (fees.maxPriorityFeePerGas * feeMultiplier) / feeDivisor;
-      const maxFeePerGas = (fees.maxFeePerGas * feeMultiplier) / feeDivisor;
-      return { maxFeePerGas, maxPriorityFeePerGas };
+      return { maxFeePerGas: fees.maxFeePerGas, maxPriorityFeePerGas: fees.maxPriorityFeePerGas };
     }
 
     return {};
@@ -358,20 +365,27 @@ export function useMockUSDC() {
   const [isLoading, setIsLoading] = useState(false);
 
   const getFeeOverrides = useCallback(async () => {
-    const fees = await publicClient.estimateFeesPerGas();
+    const [fees, block] = await Promise.all([
+      publicClient.estimateFeesPerGas(),
+      publicClient.getBlock({ blockTag: "latest" }),
+    ]);
 
-    const feeMultiplier = BigInt(120);
-    const feeDivisor = BigInt(100);
+    const baseFeePerGas = block.baseFeePerGas ?? BigInt(0);
+    const fallbackPriorityFee = BigInt(1500000);
+
+    if (baseFeePerGas > BigInt(0)) {
+      const maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? fallbackPriorityFee;
+      const maxFeePerGas = baseFeePerGas * BigInt(2) + maxPriorityFeePerGas;
+      return { maxFeePerGas, maxPriorityFeePerGas };
+    }
 
     if (fees.gasPrice) {
-      const gasPrice = (fees.gasPrice * feeMultiplier) / feeDivisor;
+      const gasPrice = fees.gasPrice;
       return { gasPrice };
     }
 
     if (fees.maxFeePerGas && fees.maxPriorityFeePerGas) {
-      const maxPriorityFeePerGas = (fees.maxPriorityFeePerGas * feeMultiplier) / feeDivisor;
-      const maxFeePerGas = (fees.maxFeePerGas * feeMultiplier) / feeDivisor;
-      return { maxFeePerGas, maxPriorityFeePerGas };
+      return { maxFeePerGas: fees.maxFeePerGas, maxPriorityFeePerGas: fees.maxPriorityFeePerGas };
     }
 
     return {};

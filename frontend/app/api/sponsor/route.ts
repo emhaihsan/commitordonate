@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createWalletClient, createPublicClient, http, encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import MockUSDCABI from "@/lib/abis/MockUSDC.json";
-import { arbitrumSepoliaCustom, RPC_URL, MOCKUSDC_ADDRESS } from "@/lib/contracts";
+import { mantleSepoliaCustom, RPC_URL, MOCKUSDC_ADDRESS } from "@/lib/contracts";
 
 const SPONSOR_PRIVATE_KEY = process.env.SPONSOR_PRIVATE_KEY;
 
 const publicClient = createPublicClient({
-  chain: arbitrumSepoliaCustom,
+  chain: mantleSepoliaCustom,
   transport: http(RPC_URL),
 });
 
@@ -18,7 +18,7 @@ function getSponsorWalletClient() {
   const account = privateKeyToAccount(SPONSOR_PRIVATE_KEY as `0x${string}`);
   return createWalletClient({
     account,
-    chain: arbitrumSepoliaCustom,
+    chain: mantleSepoliaCustom,
     transport: http(RPC_URL),
   });
 }
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
     const hash = await walletClient.sendTransaction({
       to: MOCKUSDC_ADDRESS,
       data,
+      chain: mantleSepoliaCustom,
     });
 
     // Wait for transaction

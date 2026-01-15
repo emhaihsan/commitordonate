@@ -26,18 +26,18 @@ export default function CommitPage() {
     charityId: "",
     customCharityAddress: "",
   });
-  const [stakeType, setStakeType] = useState<"USDC" | "ETH">("USDC");
+  const [stakeType, setStakeType] = useState<"USDC" | "MNT">("USDC");
 
   // Application fee: 0.1%
   const APP_FEE_PERCENT = 0.1;
   const calculateFee = (amount: string) => {
     const num = parseFloat(amount) || 0;
-    return (num * APP_FEE_PERCENT / 100).toFixed(stakeType === "USDC" ? 2 : 6);
+    return (num * APP_FEE_PERCENT / 100).toFixed(stakeType === "USDC" ? 2 : 4);
   };
   const calculateNetReturn = (amount: string) => {
     const num = parseFloat(amount) || 0;
     const fee = num * APP_FEE_PERCENT / 100;
-    return (num - fee).toFixed(stakeType === "USDC" ? 2 : 6);
+    return (num - fee).toFixed(stakeType === "USDC" ? 2 : 4);
   };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [balance, setBalance] = useState<bigint>(BigInt(0));
@@ -145,10 +145,10 @@ export default function CommitPage() {
 
       let result: { commitmentId: bigint; txHash: string } | null;
 
-      if (stakeType === "ETH") {
-        // ETH staking
-        const ethAmount = parseEther(formData.stakeAmount);
-        if (ethAmount <= BigInt(0)) {
+      if (stakeType === "MNT") {
+        // MNT staking
+        const mntAmount = parseEther(formData.stakeAmount);
+        if (mntAmount <= BigInt(0)) {
           throw new Error("Stake amount must be greater than 0");
         }
 
@@ -157,7 +157,7 @@ export default function CommitPage() {
           charityAddress,
           deadlineTimestamp,
           formData.commitment,
-          ethAmount
+          mntAmount
         );
       } else {
         // USDC staking
@@ -339,12 +339,12 @@ export default function CommitPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setStakeType("ETH")}
+                      onClick={() => setStakeType("MNT")}
                       className={`brutal-btn flex-1 py-3 font-bold ${
-                        stakeType === "ETH" ? "bg-[var(--cyan)]" : "bg-gray-100"
+                        stakeType === "MNT" ? "bg-[var(--cyan)]" : "bg-gray-100"
                       }`}
                     >
-                      ⟠ ETH
+                      ⬡ MNT
                     </button>
                   </div>
                 </div>
@@ -392,14 +392,14 @@ export default function CommitPage() {
                   </label>
                   <div className="relative">
                     <span className="absolute left-1.5 top-1/2 -translate-y-1/2 font-bold text-lg">
-                      {stakeType === "USDC" ? "$" : "Ξ"}
+                      {stakeType === "USDC" ? "$" : ""}
                     </span>
                     <input
                       type="number"
-                      step={stakeType === "ETH" ? "0.001" : "1"}
+                      step={stakeType === "MNT" ? "0.01" : "1"}
                       value={formData.stakeAmount}
                       onChange={(e) => setFormData({ ...formData, stakeAmount: e.target.value })}
-                      placeholder={stakeType === "USDC" ? "100" : "0.01"}
+                      placeholder={stakeType === "USDC" ? "100" : "1"}
                       className="brutal-input w-full pl-10 text-2xl font-black"
                     />
                   </div>

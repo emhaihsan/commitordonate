@@ -8,7 +8,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { LogOut, Wallet, User, Copy, X, RefreshCw, AlertTriangle } from "lucide-react";
 import { formatAddress, MOCKUSDC_ADDRESS, formatAmountByToken } from "@/lib/contracts";
 import { createPublicClient, http } from "viem";
-import { arbitrumSepoliaCustom } from "@/lib/contracts";
+import { mantleSepoliaCustom } from "@/lib/contracts";
 import MockUSDCABI from "@/lib/abis/MockUSDC.json";
 
 export default function Header() {
@@ -20,14 +20,14 @@ export default function Header() {
 
   const walletAddress = address as `0x${string}` | undefined;
   const [showWalletModal, setShowWalletModal] = useState(false);
-  const [ethBalance, setEthBalance] = useState<bigint>(BigInt(0));
+  const [mntBalance, setMntBalance] = useState<bigint>(BigInt(0));
   const [usdcBalance, setUsdcBalance] = useState<bigint>(BigInt(0));
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showChainWarning, setShowChainWarning] = useState(false);
 
   // Check if wallet is on wrong chain
-  const isWrongChain = chain && chain.id !== arbitrumSepoliaCustom.id;
+  const isWrongChain = chain && chain.id !== mantleSepoliaCustom.id;
 
   useEffect(() => {
     if (isConnected && isWrongChain) {
@@ -39,7 +39,7 @@ export default function Header() {
 
   const handleSwitchChain = async () => {
     try {
-      await switchChain({ chainId: arbitrumSepoliaCustom.id });
+      await switchChain({ chainId: mantleSepoliaCustom.id });
       setShowChainWarning(false);
     } catch (error) {
       console.error("Failed to switch chain:", error);
@@ -47,7 +47,7 @@ export default function Header() {
   };
 
   const publicClient = createPublicClient({
-    chain: arbitrumSepoliaCustom,
+    chain: mantleSepoliaCustom,
     transport: http(),
   });
 
@@ -64,7 +64,7 @@ export default function Header() {
           args: [walletAddress],
         }),
       ]);
-      setEthBalance(ethBal);
+      setMntBalance(ethBal);
       setUsdcBalance(usdcBal as bigint);
     } catch (error) {
       console.error("Error loading balances:", error);
@@ -214,10 +214,10 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* ETH Balance */}
+              {/* MNT Balance */}
               <div className="brutal-card p-4 bg-[var(--cyan)]">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold uppercase tracking-widest">ETH Balance</p>
+                  <p className="text-xs font-bold uppercase tracking-widest">MNT Balance</p>
                   <button
                     onClick={loadBalances}
                     disabled={loadingBalances}
@@ -228,7 +228,7 @@ export default function Header() {
                   </button>
                 </div>
                 <p className="text-2xl font-black font-mono">
-                  {loadingBalances ? "..." : formatAmountByToken(ethBalance, "0x0000000000000000000000000000000000000000" as `0x${string}`)}
+                  {loadingBalances ? "..." : formatAmountByToken(mntBalance, "0x0000000000000000000000000000000000000000" as `0x${string}`)}
                 </p>
               </div>
 

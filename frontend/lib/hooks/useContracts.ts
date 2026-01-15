@@ -16,13 +16,13 @@ import {
   type Commitment,
   CommitmentStatus,
   CommitmentOutcome,
-  arbitrumSepoliaCustom,
+  mantleSepoliaCustom,
   RPC_URL,
 } from "../contracts";
 
 export function usePublicClient(): PublicClient {
   return createPublicClient({
-    chain: arbitrumSepoliaCustom,
+    chain: mantleSepoliaCustom,
     transport: http(RPC_URL),
   });
 }
@@ -190,7 +190,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "createCommitmentToken",
           args: [validator, charity, token, amount, deadline, description],
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
           ...gasOverrides,
@@ -237,7 +237,7 @@ export function useCommitmentVault() {
           functionName: "createCommitmentETH",
           args: [validator, charity, deadline, description],
           value: amount,
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
           ...gasOverrides,
@@ -277,7 +277,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "confirmCompletion",
           args: [commitmentId],
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
           ...gasOverrides,
@@ -315,7 +315,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "approve",
           args: [commitmentId],
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
           ...gasOverrides,
@@ -353,7 +353,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "reject",
           args: [commitmentId],
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
           ...gasOverrides,
@@ -390,7 +390,7 @@ export function useCommitmentVault() {
           ...commitmentVaultConfig,
           functionName: "resolveExpired",
           args: [commitmentId],
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
           ...gasOverrides,
@@ -516,7 +516,7 @@ export function useMockUSDC() {
           ...mockUsdcConfig,
           functionName: "approve",
           args: [spender, amount],
-          chain: arbitrumSepoliaCustom,
+          chain: mantleSepoliaCustom,
           account,
           ...feeOverrides,
         });
@@ -565,7 +565,7 @@ export function useMockUSDC() {
       const hash = await wc.writeContract({
         ...mockUsdcConfig,
         functionName: "faucet",
-        chain: arbitrumSepoliaCustom,
+        chain: mantleSepoliaCustom,
         account,
         ...feeOverrides,
       });

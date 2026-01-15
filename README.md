@@ -28,7 +28,7 @@ No excuses. No retries. No mercy.
 ## How It Works (Simple 5-Step Flow)
 
 1. **Create a commitment**  
-   Define what you’ll do, set a deadline, choose stake (ETH or mockUSDC), pick a validator and a charity.
+   Define what you’ll do, set a deadline, choose stake (MNT or mockUSDC), pick a validator and a charity.
 
 2. **Stake funds**  
    Your funds are locked in a smart contract escrow.
@@ -54,7 +54,7 @@ Validator always wins. Silence counts as failure.
 - **Smart Contracts**: Solidity (CommitmentVault + MockUSDC)
 - **Time Logic**: `block.timestamp`
 - **Assets**:
-  - Native ETH
+  - Native MNT (Mantle Token)
   - mockUSDC (self-deployed with in-app faucet)
 
 No oracles. No automation services. No AI.
@@ -63,14 +63,14 @@ No oracles. No automation services. No AI.
 
 ## Supported Chains
 
-- **Arbitrum Sepolia (Chain ID: 421614)**
+- **Mantle Sepolia (Chain ID: 5003)**
 
-## Deployed Contracts (Arbitrum Sepolia)
+## Deployed Contracts (Mantle Sepolia)
 
 | Contract | Address | Explorer |
 |---|---|---|
-| CommitmentVault | `0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d` | https://sepolia.arbiscan.io/address/0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d |
-| MockUSDC | `0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0` | https://sepolia.arbiscan.io/address/0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0 |
+| CommitmentVault | `0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d` | https://sepolia.mantlescan.xyz/address/0x5e004185A592832B3FD3cdce364dA3bdf2B08A3d |
+| MockUSDC | `0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0` | https://sepolia.mantlescan.xyz/address/0x26bBaE72dab5EEa1f5d5178CF2d3d5E6Cf55D1e0 |
 
 ---
 
@@ -79,7 +79,7 @@ No oracles. No automation services. No AI.
 1. Connect using social login (email) via Web3Auth
 2. Claim mockUSDC from the in-app faucet (optional)
 3. Create a commitment with a short deadline
-4. Stake ETH or mockUSDC
+4. Stake MNT or mockUSDC
 5. Skip validator confirmation to trigger **auto-donation**
 6. Observe on-chain transaction sending funds to the charity address
 
@@ -116,8 +116,8 @@ Create `frontend/.env.local` (see `frontend/.env.local.example`). Minimum requir
 - `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID`
 - `NEXT_PUBLIC_VAULT_ADDRESS`
 - `NEXT_PUBLIC_MOCKUSDC_ADDRESS`
-- `NEXT_PUBLIC_CHAIN_ID=421614`
-- `NEXT_PUBLIC_ARBITRUM_RPC_URL`
+- `NEXT_PUBLIC_CHAIN_ID=5003`
+- `NEXT_PUBLIC_MANTLE_RPC_URL`
 
 3. Run
 

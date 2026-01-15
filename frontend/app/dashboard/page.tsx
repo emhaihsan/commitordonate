@@ -14,7 +14,7 @@ import {
   formatAddress,
   formatAmountByToken,
   getCurrencySymbol,
-  isETH,
+  isNativeToken,
   MOCKUSDC_ADDRESS,
   getExplorerTxUrl,
   formatTxHash,
@@ -209,16 +209,16 @@ function DashboardContent() {
   };
 
   // Calculate total staked amounts by currency
-  const totalETH = activeCommitments
-    .filter((c) => isETH(c.token))
+  const totalMNT = activeCommitments
+    .filter((c) => isNativeToken(c.token))
     .reduce((sum, c) => sum + c.rawAmount, BigInt(0));
   const totalUSDC = activeCommitments
-    .filter((c) => !isETH(c.token))
+    .filter((c) => !isNativeToken(c.token))
     .reduce((sum, c) => sum + c.rawAmount, BigInt(0));
 
-  const ethDisplay = totalETH > BigInt(0) ? `Ξ${formatAmountByToken(totalETH, "0x0000000000000000000000000000000000000000")}` : "";
+  const mntDisplay = totalMNT > BigInt(0) ? `MNT ${formatAmountByToken(totalMNT, "0x0000000000000000000000000000000000000000")}` : "";
   const usdcDisplay = totalUSDC > BigInt(0) ? `$${formatAmountByToken(totalUSDC, MOCKUSDC_ADDRESS)}` : "";
-  const stakeDisplay = [ethDisplay, usdcDisplay].filter(Boolean).join(" / ") || "0";
+  const stakeDisplay = [mntDisplay, usdcDisplay].filter(Boolean).join(" / ") || "0";
 
   const successCount = commitments.filter((c) => c.status === "success").length;
   const failedCount = commitments.filter((c) => c.status === "failed").length;

@@ -23,7 +23,7 @@ import {
   formatAddress as formatAddr,
   formatAmountByToken,
   getCurrencySymbol,
-  isETH,
+  isNativeToken,
   getExplorerTxUrl,
   formatTxHash,
 } from "@/lib/contracts";
@@ -446,7 +446,7 @@ export default function CommitmentDetailPage() {
                     </p>
                     {commitment.donationTxHash && (
                       <a
-                        href={`https://etherscan.io/tx/${commitment.donationTxHash}`}
+                        href={getExplorerTxUrl(commitment.donationTxHash)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="brutal-btn bg-white text-black px-4 py-2 inline-flex items-center gap-2 font-bold text-sm"
@@ -533,7 +533,7 @@ export default function CommitmentDetailPage() {
               <div className="brutal-card p-6 bg-white">
                 <h2 className="font-black text-lg mb-4">🔗 Transaction</h2>
                 <a
-                  href={`https://etherscan.io/tx/${commitment.txHash}`}
+                  href={getExplorerTxUrl(commitment.txHash)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="brutal-btn bg-[var(--cyan)] px-4 py-2 inline-flex items-center gap-2 font-bold text-sm"

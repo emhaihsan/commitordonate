@@ -6,15 +6,15 @@ export const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS as `0x${strin
 export const MOCKUSDC_ADDRESS = process.env.NEXT_PUBLIC_MOCKUSDC_ADDRESS as `0x${string}`;
 
 // CRITICAL: Always use Infura RPC, NEVER default public RPC
-export const RPC_URL = process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL || "https://arbitrum-sepolia.infura.io/v3/7e66544f0bb047c0aa8db93192af56e5";
+export const RPC_URL = process.env.NEXT_PUBLIC_MANTLE_RPC_URL || "https://rpc.sepolia.mantle.xyz";
 
-// Custom Arbitrum Sepolia chain with OUR RPC URL - do NOT import from viem/chains
-export const arbitrumSepoliaCustom = defineChain({
-  id: 421614,
-  name: "Arbitrum Sepolia",
+// Custom Mantle Sepolia chain with OUR RPC URL - do NOT import from viem/chains
+export const mantleSepoliaCustom = defineChain({
+  id: 5003,
+  name: "Mantle Sepolia",
   nativeCurrency: {
-    name: "Arbitrum Sepolia Ether",
-    symbol: "ETH",
+    name: "Mantle",
+    symbol: "MNT",
     decimals: 18,
   },
   rpcUrls: {
@@ -24,8 +24,8 @@ export const arbitrumSepoliaCustom = defineChain({
   },
   blockExplorers: {
     default: {
-      name: "Arbiscan",
-      url: "https://sepolia.arbiscan.io",
+      name: "Mantle Sepolia Explorer",
+      url: "https://sepolia.mantlescan.xyz",
     },
   },
   testnet: true,
@@ -41,10 +41,10 @@ export const mockUsdcConfig = {
   abi: MockUSDCABI.abi,
 } as const;
 
-export const SUPPORTED_CHAIN = arbitrumSepoliaCustom;
+export const SUPPORTED_CHAIN = mantleSepoliaCustom;
 
-// Helper to check if token is ETH (address(0))
-export const isETH = (token: `0x${string}`): boolean => {
+// Helper to check if token is native MNT (address(0))
+export const isNativeToken = (token: `0x${string}`): boolean => {
   return token === "0x0000000000000000000000000000000000000000";
 };
 
@@ -96,11 +96,11 @@ export function formatAmount(amount: bigint, decimals: number = 6): string {
   return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: decimals > 6 ? 6 : 2 });
 }
 
-// Format amount based on token type (ETH = 18 decimals, USDC = 6 decimals)
+// Format amount based on token type (MNT = 18 decimals, USDC = 6 decimals)
 export function formatAmountByToken(amount: bigint, token: `0x${string}`): string {
-  const decimals = isETH(token) ? 18 : 6;
+  const decimals = isNativeToken(token) ? 18 : 6;
   const value = Number(amount) / Math.pow(10, decimals);
-  if (isETH(token)) {
+  if (isNativeToken(token)) {
     return value.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 6 });
   }
   return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -108,7 +108,7 @@ export function formatAmountByToken(amount: bigint, token: `0x${string}`): strin
 
 // Get currency symbol based on token
 export function getCurrencySymbol(token: `0x${string}`): string {
-  return isETH(token) ? "Ξ" : "$";
+  return isNativeToken(token) ? "MNT " : "$";
 }
 
 export function parseAmount(amount: string, decimals: number = 6): bigint {
@@ -116,8 +116,8 @@ export function parseAmount(amount: string, decimals: number = 6): bigint {
   return BigInt(Math.floor(value));
 }
 
-// Explorer URL helpers for Arbitrum Sepolia
-export const EXPLORER_URL = "https://sepolia.arbiscan.io";
+// Explorer URL helpers for Mantle Sepolia
+export const EXPLORER_URL = "https://sepolia.mantlescan.xyz";
 
 export function getExplorerTxUrl(txHash: string): string {
   return `${EXPLORER_URL}/tx/${txHash}`;
